@@ -4,11 +4,24 @@
   "description": "Standalone CLI toolkit for bootstrapping and maintaining an Allure 3 setup in JavaScript/TypeScript projects",
   "keywords": [
     "allure",
+    "allure3",
+    "allurerc",
     "report",
+    "reporter",
     "testing",
-    "cli"
+    "test-report",
+    "cli",
+    "scaffold",
+    "setup",
+    "bootstrap",
+    "gh-pages"
   ],
   "license": "Apache-2.0",
+  "author": "Todti <hellotodt@gmail.com>",
+  "homepage": "https://github.com/todti/allure-kit#readme",
+  "bugs": {
+    "url": "https://github.com/todti/allure-kit/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/todti/allure-kit.git"
