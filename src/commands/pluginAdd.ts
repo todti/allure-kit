@@ -4,7 +4,7 @@ import { cwd as processCwd } from "node:process";
 import { Command, Option } from "clipanion";
 import prompts from "prompts";
 
-import { findExistingConfig, updateConfigPlugins } from "./utils/config-io.js";
+import { findExistingConfig, readAllureConfig, updateConfigPlugins } from "./utils/config-io.js";
 import { detectPackageManager, getInstallCommand } from "./utils/detect-package-manager.js";
 import { executeCommand } from "./utils/exec.js";
 import type { PluginOptionDescriptor } from "./utils/registry.js";
@@ -103,6 +103,27 @@ export class KitPluginAddCommand extends Command {
       }
 
       return;
+    }
+
+    const existingConfigForCheck = await findExistingConfig(workingDir);
+
+    if (existingConfigForCheck && existingConfigForCheck.format !== "mjs") {
+      const existingPluginConfig = await readAllureConfig(workingDir);
+
+      if (existingPluginConfig?.plugins?.[pluginId]) {
+        const { shouldOverwrite } = await prompts({
+          type: "confirm",
+          name: "shouldOverwrite",
+          message: `Plugin "${pluginId}" is already configured. Overwrite its settings?`,
+          initial: false,
+        });
+
+        if (!shouldOverwrite) {
+          logWarning("Aborted — existing configuration left unchanged.");
+          logHint(`Use "allure-kit plugin edit ${pluginId}" to update its settings instead.`);
+          return;
+        }
+      }
     }
 
     const options: Record<string, unknown> = {};

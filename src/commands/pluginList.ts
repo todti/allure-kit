@@ -27,9 +27,15 @@ export class KitPluginListCommand extends Command {
     console.log("\n  Available Allure Report Plugins:\n");
 
     const maxIdLength = Math.max(...REPORT_PLUGIN_REGISTRY.map((plugin) => plugin.id.length));
+    let configuredCount = 0;
 
     for (const plugin of REPORT_PLUGIN_REGISTRY) {
       const isConfigured = plugin.id in configuredPlugins;
+
+      if (isConfigured) {
+        configuredCount += 1;
+      }
+
       const paddedId = plugin.id.padEnd(maxIdLength + 2);
       const statusBadge = isConfigured ? colors.green("[configured]") : colors.dim("            ");
       const defaultBadge = plugin.isDefault ? colors.yellow(" (default)") : "";
@@ -37,6 +43,8 @@ export class KitPluginListCommand extends Command {
       console.log(`    ${paddedId} ${statusBadge}  ${plugin.description}${defaultBadge}`);
     }
 
+    console.log();
+    console.log(colors.dim(`  Configured: ${configuredCount} of ${REPORT_PLUGIN_REGISTRY.length}`));
     console.log();
   }
 }

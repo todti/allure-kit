@@ -101,6 +101,16 @@ allure-kit plugin list [--cwd <path>]
 allure-kit plugin add <name> [--skip-options] [--cwd <path>]
 ```
 
+Prompts for confirmation before overwriting a plugin that is already configured.
+
+### `plugin edit`
+
+```bash
+allure-kit plugin edit <name> [--cwd <path>]
+```
+
+Updates the options of a plugin that is already configured, pre-filled with its current values.
+
 ### `plugin remove`
 
 ```bash
