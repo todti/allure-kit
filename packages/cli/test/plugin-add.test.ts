@@ -82,4 +82,17 @@ describe("kit/plugin add", () => {
 
     expect(config?.plugins?.csv).toBeDefined();
   });
+
+  it("leaves the config untouched when package installation fails", async () => {
+    await writeFile(join(tempDir, "allurerc.json"), JSON.stringify({ name: "Test", plugins: {} }));
+
+    executeCommandMock.mockResolvedValue({ stdout: "", stderr: "network error", exitCode: 1 });
+    promptsMock.mockResolvedValueOnce({ value: "custom.csv" }).mockResolvedValueOnce({ value: "," }).mockResolvedValueOnce({ value: false });
+
+    await runCommand(["plugin", "add", "csv", "--cwd", tempDir]);
+
+    const config = await readAllureConfig(tempDir);
+
+    expect(config?.plugins?.csv).toBeUndefined();
+  });
 });

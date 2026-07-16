@@ -118,4 +118,28 @@ describe("kit/init", () => {
     expect(await fileExists(join(tempDir, "test"))).toBe(false);
     expect(await fileExists(join(tempDir, "src", "__tests__"))).toBe(false);
   });
+
+  it("should not write allurerc.json when the install command fails", async () => {
+    vi.mocked(executeCommand).mockResolvedValue({ stdout: "", stderr: "network error", exitCode: 1 });
+
+    const command = new KitInitCommand();
+    command.cwd = tempDir;
+    command.framework = "playwright";
+
+    await command.execute();
+
+    expect(await fileExists(join(tempDir, "allurerc.json"))).toBe(false);
+  });
+
+  it("should default to npm when auto-detected on an empty project", async () => {
+    const command = new KitInitCommand();
+    command.cwd = tempDir;
+    command.yes = true;
+
+    await command.execute();
+
+    expect(executeCommand).toHaveBeenCalledTimes(1);
+    const [installCommand] = vi.mocked(executeCommand).mock.calls[0];
+    expect(installCommand).toBe("npm install --save-dev allure");
+  });
 });

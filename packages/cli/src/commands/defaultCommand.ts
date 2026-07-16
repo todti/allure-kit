@@ -10,6 +10,7 @@ const COMMANDS = [
   },
   { name: "gh-pages init", description: "Create GitHub Pages workflow for publishing Allure report" },
   { name: "plugin add <name>", description: "Add a report plugin with interactive options" },
+  { name: "plugin edit <name>", description: "Edit the options of a configured report plugin" },
   { name: "plugin remove <name>", description: "Remove a report plugin" },
   { name: "plugin list", description: "List available report plugins" },
   { name: "update", description: "Update all Allure packages to latest" },

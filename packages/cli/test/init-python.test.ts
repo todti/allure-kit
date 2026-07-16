@@ -124,4 +124,59 @@ describe("kit/init (python)", () => {
 
     await expect(command.execute()).rejects.toThrow(/--lang=js/);
   });
+
+  describe.each([
+    { framework: "behave", adapter: "allure-behave" },
+    { framework: "pytest-bdd", adapter: "allure-pytest-bdd" },
+    { framework: "robotframework", adapter: "allure-robotframework" },
+  ])("--framework=$framework", ({ framework, adapter }) => {
+    it(`should install ${adapter}`, async () => {
+      const command = new KitInitCommand();
+      command.cwd = tempDir;
+      command.lang = "python";
+      command.framework = framework;
+
+      await command.execute();
+
+      expect(executeCommand).toHaveBeenCalledTimes(1);
+      const [installCommand] = vi.mocked(executeCommand).mock.calls[0];
+      expect(installCommand).toBe(`poetry add --group dev ${adapter}`);
+    });
+  });
+
+  describe.each([
+    { manager: "pdm", expected: "pdm add -d allure-pytest" },
+    { manager: "pipenv", expected: "pipenv install --dev allure-pytest" },
+  ] as const)("package manager: $manager", ({ manager, expected }) => {
+    it(`should build the ${manager} install command`, async () => {
+      vi.mocked(detectPythonPackageManager).mockResolvedValue(manager);
+
+      const command = new KitInitCommand();
+      command.cwd = tempDir;
+      command.lang = "python";
+      command.framework = "pytest";
+
+      await command.execute();
+
+      expect(executeCommand).toHaveBeenCalledTimes(1);
+      const [installCommand] = vi.mocked(executeCommand).mock.calls[0];
+      expect(installCommand).toBe(expected);
+
+      // pdm/pipenv self-persist to their manifest — no requirements.txt should appear.
+      expect(await fileExists(join(tempDir, "requirements.txt"))).toBe(false);
+    });
+  });
+
+  it("should not write allurerc.json when the install command fails", async () => {
+    vi.mocked(executeCommand).mockResolvedValue({ stdout: "", stderr: "no matching package", exitCode: 1 });
+
+    const command = new KitInitCommand();
+    command.cwd = tempDir;
+    command.lang = "python";
+    command.framework = "pytest";
+
+    await command.execute();
+
+    expect(await fileExists(join(tempDir, "allurerc.json"))).toBe(false);
+  });
 });
