@@ -1,0 +1,37 @@
+{
+  "name": "@todti/allure-kit-core",
+  "version": "0.1.0",
+  "description": "Shared kernel for allure-kit: config I/O, exec, fs helpers, report-plugin registry, and the EcosystemAdapter contract ecosystem packages implement.",
+  "keywords": ["allure", "allure3", "allurerc"],
+  "license": "Apache-2.0",
+  "author": "Todti <hellotodt@gmail.com>",
+  "homepage": "https://github.com/todti/allure-kit#readme",
+  "bugs": {
+    "url": "https://github.com/todti/allure-kit/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/todti/allure-kit.git",
+    "directory": "packages/core"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": ["dist"],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "typecheck": "tsc -b tsconfig.json"
+  },
+  "dependencies": {
+    "yaml": "^2.8.1",
+    "yoctocolors": "^2.1.1"
+  }
+}

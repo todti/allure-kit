@@ -1,59 +1,22 @@
 {
-  "name": "allure-kit",
-  "version": "0.1.0",
-  "description": "Standalone CLI toolkit for bootstrapping and maintaining an Allure 3 setup in JavaScript/TypeScript projects",
-  "keywords": [
-    "allure",
-    "allure3",
-    "allurerc",
-    "report",
-    "reporter",
-    "testing",
-    "test-report",
-    "cli",
-    "scaffold",
-    "setup",
-    "bootstrap",
-    "gh-pages"
-  ],
+  "name": "allure-kit-monorepo",
+  "private": true,
   "license": "Apache-2.0",
   "author": "Todti <hellotodt@gmail.com>",
-  "homepage": "https://github.com/todti/allure-kit#readme",
-  "bugs": {
-    "url": "https://github.com/todti/allure-kit/issues"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/todti/allure-kit.git"
   },
-  "bin": {
-    "allure-kit": "bin/allure-kit.js"
-  },
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": "./dist/index.js"
-  },
-  "files": [
-    "dist",
-    "bin"
-  ],
+  "workspaces": ["packages/*"],
   "engines": {
     "node": ">=18"
   },
   "scripts": {
-    "build": "rimraf dist && tsc --project tsconfig.json",
-    "clean": "rimraf dist",
-    "start": "node ./bin/allure-kit.js",
+    "build": "tsc -b tsconfig.json",
+    "clean": "npm run clean --workspaces --if-present && rimraf tsconfig.tsbuildinfo",
+    "start": "node ./packages/cli/bin/allure-kit.js",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "clipanion": "^4.0.0-rc.4",
-    "prompts": "^2.4.2",
-    "yaml": "^2.8.1",
-    "yoctocolors": "^2.1.1"
+    "typecheck": "tsc -b tsconfig.json"
   },
   "devDependencies": {
     "@types/node": "^20.17.9",

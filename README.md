@@ -1,6 +1,6 @@
 # allure-kit
 
-A standalone CLI that sets up and maintains [Allure Report 3](https://allurereport.org/) in a JavaScript/TypeScript project — the equivalent of `npm init` for Allure.
+A standalone CLI that sets up and maintains [Allure Report 3](https://allurereport.org/) in a JavaScript/TypeScript or Python project — the equivalent of `npm init` for Allure.
 
 ## Why
 
@@ -14,12 +14,12 @@ A standalone CLI that sets up and maintains [Allure Report 3](https://allurerepo
 - keeps all installed Allure packages up to date (`update`),
 - scaffolds a GitHub Actions workflow that publishes reports to GitHub Pages.
 
-Detected frameworks: Vitest, Playwright, Jest, Mocha, Cypress, Cucumber.js, Jasmine, CodeceptJS, Newman (Postman), and WebdriverIO (WDIO).
+Detected frameworks: Vitest, Playwright, Jest, Mocha, Cypress, Cucumber.js, Jasmine, CodeceptJS, Newman (Postman), and WebdriverIO (WDIO) for JS/TS; Behave, pytest, Pytest-BDD, and Robot Framework for Python.
 
 ## How it works
 
-- **Framework detection** reads `package.json` dependencies and looks for known test-framework config files (`playwright.config.ts`, `vitest.config.ts`, `wdio.conf.ts`, etc.) to figure out which frameworks are actually in play, then maps each one to its Allure adapter package (e.g. `playwright` → `allure-playwright`).
-- **Package manager detection** looks at the lockfile (`package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`) to install adapters with the right tool and flags.
+- **Framework detection** reads `package.json` dependencies (or, for Python, `requirements*.txt`/`pyproject.toml`/`Pipfile`) and looks for known test-framework config files (`playwright.config.ts`, `vitest.config.ts`, `wdio.conf.ts`, `pytest.ini`, `behave.ini`, etc.) to figure out which frameworks are actually in play, then maps each one to its Allure adapter package (e.g. `playwright` → `allure-playwright`, `pytest` → `allure-pytest`).
+- **Package manager detection** looks at the lockfile — `package-lock.json`/`pnpm-lock.yaml`/`yarn.lock`/`bun.lock(b)` for JS/TS, or `poetry.lock`/`pdm.lock`/`Pipfile.lock`/`requirements.txt` for Python — to install adapters with the right tool and flags. A project is treated as Python when `--lang=python` is passed or no `package.json` is found but a Python manifest is present.
 - **Config generation** writes an `allurerc` file (JSON/YAML/ESM) wiring up the selected report plugins, defaulting to the [`awesome`](https://allurereport.org/docs/plugin-awesome/) HTML report plugin.
 - **`doctor`** re-runs detection and cross-checks it against what's actually installed and configured, flagging missing adapters, unconfigured plugins, or an unused/stale adapter.
 - **`update`** finds every `allure*`/`@allurereport/*` package already in `package.json` and bumps it to latest via the detected package manager.
@@ -60,21 +60,24 @@ For a one-shot install of a specific framework:
 
 ```bash
 npx allure-kit init --lang=js --framework=playwright
+npx allure-kit init --lang=python --framework=pytest
 ```
+
+Allure 3's report generator (`allure generate`) is a Node.js CLI regardless of the test framework's language, so Python projects still need Node.js available to run `npx allure generate` — `init` only installs the Python-side adapter package(s) via the detected Python package manager, it doesn't add a `package.json` to a pure Python project.
 
 ## Commands
 
 ### `init`
 
 ```bash
-allure-kit init [--lang js|ts] [--framework <id>] [--format json|yaml|mjs] [--yes] [--cwd <path>]
+allure-kit init [--lang js|ts|python] [--framework <id>] [--format json|yaml|mjs] [--yes] [--cwd <path>]
 ```
 
 Detects test frameworks (by dependencies, config files, and existing tests), installs matching adapters, and creates an `allurerc` config. `init` does **not** generate any demo tests — it only configures Allure. Sample tests live in a separate repository.
 
 Flags:
-- `--lang` — project language. Currently only `js`/`ts` are accepted (a stub for future language support; any other value fails with a usage error).
-- `--framework` — force-pick a single framework by id or package name (`playwright`, `vitest`, `wdio`, ...). Implies non-interactive mode with the default `awesome` plugin.
+- `--lang` — project language: `js`/`ts` (treated the same) or `python`/`py`. Without this flag, `init` auto-detects: `package.json` present → JS/TS, otherwise a Python manifest (`pyproject.toml`, `requirements*.txt`, `Pipfile`, `setup.py`/`setup.cfg`) present → Python, otherwise defaults to JS/TS.
+- `--framework` — force-pick a single framework by id or package name (`playwright`, `vitest`, `wdio`, `pytest`, `behave`, ...). Implies non-interactive mode with the default `awesome` plugin.
 - `--format` — `json` (default), `yaml`, or `mjs` config format.
 - `--yes` — accept defaults without prompts.
 - `--cwd` — working directory.
@@ -146,6 +149,19 @@ allure-kit plugin remove <name> [--uninstall] [--cwd <path>]
 | [Newman](https://github.com/postmanlabs/newman) (Postman) | `newman-reporter-allure` |
 | [WebdriverIO](https://webdriver.io/) (WDIO) | `@wdio/allure-reporter` |
 
+Python:
+
+| Framework | Adapter package |
+|---|---|
+| [Behave](https://behave.readthedocs.io/) | `allure-behave` |
+| [pytest](https://pytest.org/) | `allure-pytest` |
+| [Pytest-BDD](https://pytest-bdd.readthedocs.io/) | `allure-pytest-bdd` |
+| [Robot Framework](https://robotframework.org/) | `allure-robotframework` |
+
+Python package managers pip, [Poetry](https://python-poetry.org/), [PDM](https://pdm-project.org/), and [Pipenv](https://pipenv.pypa.io/) are auto-detected the same way as the npm-family managers. `pip install` doesn't update any manifest on its own, so when pip is the resolved manager `init` also appends the installed adapter(s) to `requirements.txt`.
+
+`doctor` and `gh-pages init` are JS/TS-only for now — they don't yet verify Python adapter installs or scaffold a Python CI workflow.
+
 ## Report plugins
 
 All plugins are official [Allure 3 report plugins](https://allurereport.org/docs/). `awesome` is installed by default.
@@ -166,12 +182,25 @@ All plugins are official [Allure 3 report plugins](https://allurereport.org/docs
 
 Manage them any time with `allure-kit plugin add|remove|list`.
 
+## Packages
+
+This repo is an npm workspaces monorepo. The published CLI (`allure-kit`, unscoped, unchanged) depends on three scoped packages that can also be used standalone:
+
+| Package | What it is |
+|---|---|
+| [`allure-kit`](packages/cli) | The CLI itself — commands, prompts, `bin/allure-kit.js` |
+| [`@todti/allure-kit-core`](packages/core) | Shared kernel: config I/O, exec, fs helpers, the report-plugin registry, and the `EcosystemAdapter` contract |
+| [`@todti/allure-kit-npm`](packages/npm) | JS/TS framework detection + npm/yarn/pnpm/bun integration |
+| [`@todti/allure-kit-python`](packages/python) | Python framework detection + pip/poetry/pdm/pipenv integration |
+
+Adding support for another language (e.g. Java) means implementing one more `EcosystemAdapter` package against `@todti/allure-kit-core` and registering it in `packages/cli/src/ecosystems.ts` — no changes to `init`'s control flow.
+
 ## Development
 
 ```bash
 npm install
-npm run build
-npm test
+npm run build      # builds all packages in dependency order (TS project references)
+npm test           # runs every package's tests in one vitest run
 npm run typecheck
 ```
 
