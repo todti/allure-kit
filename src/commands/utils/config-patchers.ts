@@ -432,6 +432,71 @@ const patchJasmineFramework = async (cwd: string, framework: FrameworkDescriptor
   return { status: "patched", configPath: helperPath };
 };
 
+export type FrameworkWiringStatus = "wired" | "not-wired" | "no-config-file" | "unsupported";
+
+// Read-only version of the "already configured?" check patchFrameworkConfig makes before
+// writing anything — for `doctor` to report on without touching any files.
+export const checkFrameworkWiring = async (cwd: string, framework: FrameworkDescriptor): Promise<FrameworkWiringStatus> => {
+  if (framework.id === "cypress") {
+    const configPath = await findExistingFile(cwd, framework.configFilePatterns);
+
+    if (!configPath) {
+      return "no-config-file";
+    }
+
+    const text = await readFile(configPath, "utf-8");
+
+    return text.includes("allureCypress(") ? "wired" : "not-wired";
+  }
+
+  if (framework.id === "jasmine") {
+    const configPath = await findExistingFile(cwd, framework.configFilePatterns);
+
+    if (!configPath) {
+      return "no-config-file";
+    }
+
+    let json: Record<string, unknown>;
+
+    try {
+      json = JSON.parse(await readFile(configPath, "utf-8")) as Record<string, unknown>;
+    } catch {
+      return "not-wired";
+    }
+
+    const target = deriveJasmineHelperTarget(json.helpers);
+
+    if (!target) {
+      return "not-wired";
+    }
+
+    try {
+      const helperPath = resolve(resolve(cwd, target.dir), `allure.reporter.${target.ext}`);
+      const existing = await readFile(helperPath, "utf-8");
+
+      return existing.includes("allure-jasmine") ? "wired" : "not-wired";
+    } catch {
+      return "not-wired";
+    }
+  }
+
+  const alreadyConfigured = ALREADY_CONFIGURED[framework.id];
+
+  if (!alreadyConfigured) {
+    return "unsupported";
+  }
+
+  const configPath = await findExistingFile(cwd, framework.configFilePatterns);
+
+  if (!configPath) {
+    return "no-config-file";
+  }
+
+  const text = await readFile(configPath, "utf-8");
+
+  return alreadyConfigured(text) ? "wired" : "not-wired";
+};
+
 export const patchFrameworkConfig = async (
   cwd: string,
   framework: FrameworkDescriptor,

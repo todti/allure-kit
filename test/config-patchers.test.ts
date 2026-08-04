@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { patchFrameworkConfig } from "../src/commands/utils/config-patchers.js";
+import { checkFrameworkWiring, patchFrameworkConfig } from "../src/commands/utils/config-patchers.js";
 import { FRAMEWORK_REGISTRY } from "../src/commands/utils/registry.js";
 
 const findFramework = (id: string) => {
@@ -522,6 +522,81 @@ describe("kit/config-patchers", () => {
       const outcome = await patchFrameworkConfig(tempDir, findFramework("jasmine"));
 
       expect(outcome.status).toBe("unrecognized-shape");
+    });
+  });
+
+  describe("checkFrameworkWiring", () => {
+    it("is read-only: doesn't touch the file, unlike patchFrameworkConfig", async () => {
+      const configPath = join(tempDir, "playwright.config.ts");
+      const original = `export default defineConfig({\n  testDir: "./tests",\n});\n`;
+
+      await writeFile(configPath, original);
+
+      const status = await checkFrameworkWiring(tempDir, findFramework("playwright"));
+
+      expect(status).toBe("not-wired");
+      expect(await readFile(configPath, "utf-8")).toBe(original);
+    });
+
+    it("reports wired once the config has the marker", async () => {
+      await writeFile(
+        join(tempDir, "playwright.config.ts"),
+        `export default defineConfig({\n  reporter: [["allure-playwright"]],\n});\n`,
+      );
+
+      expect(await checkFrameworkWiring(tempDir, findFramework("playwright"))).toBe("wired");
+    });
+
+    it("reports no-config-file when the config doesn't exist", async () => {
+      expect(await checkFrameworkWiring(tempDir, findFramework("jest"))).toBe("no-config-file");
+    });
+
+    it("reports unsupported for frameworks without a patcher", async () => {
+      expect(await checkFrameworkWiring(tempDir, findFramework("newman"))).toBe("unsupported");
+    });
+
+    it("checks cypress without writing to either file", async () => {
+      const configPath = join(tempDir, "cypress.config.ts");
+      const original = `export default defineConfig({\n  e2e: {\n    setupNodeEvents(on, config) {\n      return config;\n    },\n  },\n});\n`;
+
+      await writeFile(configPath, original);
+
+      const status = await checkFrameworkWiring(tempDir, findFramework("cypress"));
+
+      expect(status).toBe("not-wired");
+      expect(await readFile(configPath, "utf-8")).toBe(original);
+    });
+
+    it("checks jasmine without creating the helper file", async () => {
+      const jasmineDir = join(tempDir, "spec", "support");
+
+      await mkdir(jasmineDir, { recursive: true });
+      await writeFile(join(jasmineDir, "jasmine.json"), JSON.stringify({ helpers: ["helpers/**/*.js"] }, null, 2));
+
+      const status = await checkFrameworkWiring(tempDir, findFramework("jasmine"));
+
+      expect(status).toBe("not-wired");
+
+      let helperExists = true;
+
+      try {
+        await readFile(join(tempDir, "helpers", "allure.reporter.js"), "utf-8");
+      } catch {
+        helperExists = false;
+      }
+
+      expect(helperExists).toBe(false);
+    });
+
+    it("reports jasmine wired when the helper file already has the marker", async () => {
+      const jasmineDir = join(tempDir, "spec", "support");
+
+      await mkdir(jasmineDir, { recursive: true });
+      await writeFile(join(jasmineDir, "jasmine.json"), JSON.stringify({ helpers: ["helpers/**/*.js"] }, null, 2));
+      await mkdir(join(tempDir, "helpers"), { recursive: true });
+      await writeFile(join(tempDir, "helpers", "allure.reporter.js"), 'require("allure-jasmine");\n');
+
+      expect(await checkFrameworkWiring(tempDir, findFramework("jasmine"))).toBe("wired");
     });
   });
 });
