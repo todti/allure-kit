@@ -6,11 +6,12 @@ import prompts from "prompts";
 import { buildAllureConfig } from "./templates/allurerc.js";
 import type { ConfigFormat } from "./utils/config-io.js";
 import { findExistingConfig, writeAllureConfig } from "./utils/config-io.js";
+import { patchFrameworkConfig } from "./utils/config-patchers.js";
 import { detectFrameworks } from "./utils/detect-frameworks.js";
 import { detectPackageManager, getInstallCommand } from "./utils/detect-package-manager.js";
 import { executeCommand } from "./utils/exec.js";
 import { FRAMEWORK_REGISTRY, REPORT_PLUGIN_REGISTRY } from "./utils/registry.js";
-import { logError, logInfo, logSuccess, logWarning } from "./utils/ui.js";
+import { logError, logHint, logInfo, logSuccess, logWarning } from "./utils/ui.js";
 
 const SUPPORTED_LANGUAGES = ["js", "ts"] as const;
 
@@ -227,6 +228,28 @@ export class KitInitCommand extends Command {
 
       for (const adapter of selectedAdapters) {
         logSuccess(`added ${adapter}`);
+      }
+    }
+
+    for (const id of selectedFrameworkIds) {
+      const framework = FRAMEWORK_REGISTRY.find((f) => f.id === id);
+
+      if (!framework) {
+        continue;
+      }
+
+      const outcome = await patchFrameworkConfig(workingDir, framework);
+
+      if (outcome.status === "patched") {
+        logSuccess(`wired ${framework.adapterPackage} into ${outcome.configPath}`);
+
+        if (outcome.note) {
+          logWarning(outcome.note);
+        }
+      } else if (outcome.status === "already-configured") {
+        logInfo(`${framework.displayName} config already has the Allure reporter`);
+      } else {
+        logHint(`${framework.displayName}: ${framework.setupHint}`);
       }
     }
 
