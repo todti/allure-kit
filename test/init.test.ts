@@ -112,25 +112,6 @@ describe("kit/init", () => {
     expect(text).toContain('reporter: [["allure-playwright"]]');
   });
 
-  it("should skip wiring the framework config when --no-wire-config is passed", async () => {
-    await writeFile(join(tempDir, "package.json"), JSON.stringify({ name: "demo" }));
-    const original = `export default defineConfig({\n  testDir: "./tests",\n});\n`;
-    await writeFile(join(tempDir, "playwright.config.ts"), original);
-
-    const command = new KitInitCommand();
-    command.cwd = tempDir;
-    command.framework = "playwright";
-    command.wireConfig = false;
-
-    await command.execute();
-
-    const text = await readFile(join(tempDir, "playwright.config.ts"), "utf-8");
-    expect(text).toBe(original);
-
-    const configPath = join(tempDir, "allurerc.json");
-    expect(await fileExists(configPath)).toBe(true);
-  });
-
   it("should not generate any demo test files", async () => {
     await writeFile(join(tempDir, "package.json"), JSON.stringify({ name: "demo" }));
 

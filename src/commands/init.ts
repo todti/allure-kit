@@ -51,7 +51,6 @@ export class KitInitCommand extends Command {
       ["init --lang=js --framework=playwright", "Non-interactive setup for a single framework"],
       ["init --format json", "Use JSON config format"],
       ["init --yes", "Accept all defaults without prompts"],
-      ["init --yes --no-wire-config", "Install and create allurerc, but don't touch framework configs"],
     ],
   });
 
@@ -73,11 +72,6 @@ export class KitInitCommand extends Command {
 
   cwd = Option.String("--cwd", {
     description: "Working directory (default: current directory)",
-  });
-
-  wireConfig = Option.Boolean("--wire-config", {
-    description:
-      "Auto-wire the Allure reporter into detected framework configs (default: true, prompts interactively without --yes)",
   });
 
   async execute() {
@@ -169,24 +163,6 @@ export class KitInitCommand extends Command {
 
       selectedFrameworkIds = frameworkResponse.frameworks ?? [];
 
-      if (selectedFrameworkIds.length > 0 && typeof this.wireConfig !== "boolean") {
-        logInfo("This edits e.g. playwright.config.ts to register the reporter — optional, you can do it by hand later.");
-
-        const wireResponse = await prompts({
-          type: "confirm",
-          name: "wireConfig",
-          message: "Auto-wire the Allure reporter into your test framework config(s)?",
-          initial: true,
-        });
-
-        this.wireConfig = wireResponse.wireConfig ?? true;
-
-        if (!this.wireConfig) {
-          logInfo("Skipping config wiring — allure and the adapters will still be installed and allurerc created.");
-          logInfo("Wire the reporter yourself whenever you're ready; hints will be printed below.");
-        }
-      }
-
       const pluginChoices = REPORT_PLUGIN_REGISTRY.map((plugin) => ({
         title: `${plugin.id} — ${plugin.description}`,
         value: plugin.id,
@@ -255,17 +231,10 @@ export class KitInitCommand extends Command {
       }
     }
 
-    const shouldWireConfig = this.wireConfig !== false;
-
     for (const id of selectedFrameworkIds) {
       const framework = FRAMEWORK_REGISTRY.find((f) => f.id === id);
 
       if (!framework) {
-        continue;
-      }
-
-      if (!shouldWireConfig) {
-        logHint(`${framework.displayName}: ${framework.setupHint}`);
         continue;
       }
 
