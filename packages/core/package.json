@@ -1,6 +1,6 @@
 {
   "name": "@todti/allure-kit-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Shared kernel for allure-kit: config I/O, exec, fs helpers, report-plugin registry, and the EcosystemAdapter contract ecosystem packages implement.",
   "keywords": ["allure", "allure3", "allurerc"],
   "license": "Apache-2.0",
