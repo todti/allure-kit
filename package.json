@@ -1,6 +1,6 @@
 {
   "name": "allure-kit",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "Standalone CLI toolkit for bootstrapping and maintaining an Allure 3 setup in JavaScript/TypeScript projects",
   "keywords": [
     "allure",
