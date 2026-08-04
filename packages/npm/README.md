@@ -1,12 +1,13 @@
 # @todti/allure-kit-npm
 
-JS/TS ecosystem plugin for [`allure-kit`](https://www.npmjs.com/package/allure-kit) — detects JS/TS test frameworks and integrates with npm/yarn/pnpm/bun. Not meant to be used standalone; installed automatically as a dependency of the `allure-kit` CLI.
+JS/TS ecosystem plugin for [`allure-kit`](https://www.npmjs.com/package/allure-kit) — detects JS/TS test frameworks, integrates with npm/yarn/pnpm/bun, and mechanically wires the Allure reporter into each framework's own config. This package is `private` and never published — it exists only for the monorepo's internal structure; `allure-kit`'s build bundles it directly into `dist/cli.cjs`, so published users never install it separately.
 
 ## What it does
 
 - **Framework detection** — reads `package.json` dependencies/devDependencies plus config-file (`playwright.config.ts`, `vitest.config.ts`, `wdio.conf.ts`, ...) and test-file glob fallbacks.
 - **Package manager detection** — reads the `packageManager` field in `package.json` (Corepack-style), then known lockfiles (`bun.lock(b)`, `yarn.lock`, `pnpm-lock.yaml`, `package-lock.json`), walking up parent directories for monorepos. Defaults to `npm`.
 - **Install/remove command generation** for each manager, with the right dev-dependency flag.
+- **Config wiring** (`config-patchers.ts`) — mechanically patches the framework's own config to register the reporter (e.g. adds `reporter: [["allure-playwright"]]` to `playwright.config.ts`), for the frameworks whose config shape maps to one safe, conservative edit. Backs off (`unrecognized-shape`) rather than guess when it doesn't recognize the existing shape.
 
 ## Supported frameworks
 
@@ -36,10 +37,12 @@ import {
   detectPackageManager,
   getInstallCommand,
   getRemoveCommand,
+  patchFrameworkConfig,  // mechanically wires the reporter into the framework's config
+  checkFrameworkWiring,  // read-only: used by `doctor` to report wired/not-wired
 } from "@todti/allure-kit-npm";
 ```
 
-Built against the shared `EcosystemAdapter`/`FrameworkDescriptor` contract from [`@todti/allure-kit-core`](https://www.npmjs.com/package/@todti/allure-kit-core).
+Built against the shared `EcosystemAdapter`/`FrameworkDescriptor`/`ConfigPatchOutcome` contract from `packages/core`.
 
 ## Usage
 

@@ -1,6 +1,6 @@
 # @todti/allure-kit-core
 
-Shared kernel for [`allure-kit`](https://www.npmjs.com/package/allure-kit) — config I/O, process exec, filesystem helpers, the Allure report-plugin registry, and the `EcosystemAdapter` contract that language plugins (like [`@todti/allure-kit-npm`](https://www.npmjs.com/package/@todti/allure-kit-npm) and [`@todti/allure-kit-python`](https://www.npmjs.com/package/@todti/allure-kit-python)) implement. Not meant to be used standalone; installed automatically as a dependency of the `allure-kit` CLI and its ecosystem plugins.
+Shared kernel for [`allure-kit`](https://www.npmjs.com/package/allure-kit) — config I/O, process exec, filesystem helpers, the Allure report-plugin registry, and the `EcosystemAdapter` contract that language plugins (`@todti/allure-kit-npm` and `@todti/allure-kit-python`, in `packages/npm` and `packages/python`) implement. This package is `private` and never published — it exists only for the monorepo's internal structure; `allure-kit`'s build bundles it directly into `dist/cli.cjs`, so published users never install it separately.
 
 ## What's in it
 
@@ -14,7 +14,7 @@ Shared kernel for [`allure-kit`](https://www.npmjs.com/package/allure-kit) — c
 
 ## Adding a new ecosystem
 
-Implement `EcosystemAdapter<YourPackageManager>` (from `ecosystem.ts`) in a new package, publish it, add it as a dependency of the `allure-kit` CLI package, and register it in `packages/cli/src/ecosystems.ts`. See [`@todti/allure-kit-python`](https://www.npmjs.com/package/@todti/allure-kit-python)'s `adapter.ts` for a complete example.
+Implement `EcosystemAdapter<YourPackageManager>` (from `ecosystem.ts`) in a new `packages/<ecosystem>` workspace package, add it as a devDependency of `packages/cli` (esbuild bundles it in at build time — no publishing needed), and register it in `packages/cli/src/ecosystems.ts`. See `packages/python/src/adapter.ts` for a complete example.
 
 See the [`allure-kit` README](https://github.com/todti/allure-kit#readme) for full CLI docs.
 

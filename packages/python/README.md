@@ -1,6 +1,6 @@
 # @todti/allure-kit-python
 
-Python ecosystem plugin for [`allure-kit`](https://www.npmjs.com/package/allure-kit) — detects Python test frameworks and integrates with pip/poetry/pdm/pipenv. Not meant to be used standalone; installed automatically as a dependency of the `allure-kit` CLI.
+Python ecosystem plugin for [`allure-kit`](https://www.npmjs.com/package/allure-kit) — detects Python test frameworks and integrates with pip/poetry/pdm/pipenv. This package is `private` and never published — it exists only for the monorepo's internal structure; `allure-kit`'s build bundles it directly into `dist/cli.cjs`, so published users never install it separately.
 
 ## What it does
 
@@ -32,7 +32,7 @@ import {
 } from "@todti/allure-kit-python";
 ```
 
-Built against the shared `EcosystemAdapter`/`FrameworkDescriptor` contract from [`@todti/allure-kit-core`](https://www.npmjs.com/package/@todti/allure-kit-core).
+Built against the shared `EcosystemAdapter`/`FrameworkDescriptor` contract from `packages/core`.
 
 ## Usage
 

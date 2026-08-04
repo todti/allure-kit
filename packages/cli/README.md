@@ -184,16 +184,16 @@ Manage them any time with `allure-kit plugin add|remove|list`.
 
 ## Packages
 
-This repo is an npm workspaces monorepo. The published CLI (`allure-kit`, unscoped, unchanged) depends on three scoped packages that can also be used standalone:
+This repo is an npm workspaces monorepo, split for internal organization — only `allure-kit` is published. `packages/core`, `packages/npm`, and `packages/python` are `private` and get bundled directly into `allure-kit`'s `dist/cli.cjs` at build time, so installing `allure-kit` never pulls them in as separate packages.
 
 | Package | What it is |
 |---|---|
-| [`allure-kit`](packages/cli) | The CLI itself — commands, prompts, `bin/allure-kit.js` |
+| [`allure-kit`](packages/cli) | The CLI itself — commands, prompts, `bin/allure-kit.js`. The only package published to npm. |
 | [`@todti/allure-kit-core`](packages/core) | Shared kernel: config I/O, exec, fs helpers, the report-plugin registry, and the `EcosystemAdapter` contract |
-| [`@todti/allure-kit-npm`](packages/npm) | JS/TS framework detection + npm/yarn/pnpm/bun integration |
+| [`@todti/allure-kit-npm`](packages/npm) | JS/TS framework detection, npm/yarn/pnpm/bun integration, and reporter-config wiring |
 | [`@todti/allure-kit-python`](packages/python) | Python framework detection + pip/poetry/pdm/pipenv integration |
 
-Adding support for another language (e.g. Java) means implementing one more `EcosystemAdapter` package against `@todti/allure-kit-core` and registering it in `packages/cli/src/ecosystems.ts` — no changes to `init`'s control flow.
+Adding support for another language (e.g. Java) means implementing one more `EcosystemAdapter` package (in `packages/<language>`) against `@todti/allure-kit-core` and registering it as a devDependency of `packages/cli` in `packages/cli/src/ecosystems.ts` — no changes to `init`'s control flow, and no new package to publish.
 
 ## Development
 
