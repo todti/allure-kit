@@ -1,7 +1,12 @@
 import { access, readFile, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
 import type { FrameworkDescriptor } from "./registry.js";
+
+const require = createRequire(import.meta.url);
+const yamlModule: { parse: (source: string) => unknown; stringify: (value: unknown) => string } = require("yaml");
+const { parse: parseYaml, stringify: stringifyYaml } = yamlModule;
 
 export interface ConfigPatchOutcome {
   status: "patched" | "already-configured" | "no-config-file" | "unsupported" | "unrecognized-shape";
@@ -146,19 +151,63 @@ const patchJestConfig = (text: string, configPath: string): string | null => {
   if (configPath.endsWith(".json")) {
     const json = JSON.parse(text) as Record<string, unknown>;
 
+    // A custom testEnvironment is already set — don't clobber it.
+    if (json.testEnvironment) {
+      return null;
+    }
+
     json.testEnvironment = "allure-jest/environment";
 
     return `${JSON.stringify(json, null, 2)}\n`;
   }
 
+  // Same reasoning as above, for the JS/TS/mjs/cjs shape.
+  if (/testEnvironment\s*:/.test(text)) {
+    return null;
+  }
+
   return insertProperty(text, 'testEnvironment: "allure-jest/environment",');
+};
+
+const patchMochaConfig = (text: string, configPath: string): string | null => {
+  if (configPath.endsWith(".json")) {
+    const json = JSON.parse(text) as Record<string, unknown>;
+
+    if (json.reporter) {
+      return null;
+    }
+
+    json.reporter = "allure-mocha/reporter";
+
+    return `${JSON.stringify(json, null, 2)}\n`;
+  }
+
+  if (configPath.endsWith(".yml") || configPath.endsWith(".yaml")) {
+    const parsed = (parseYaml(text) ?? {}) as Record<string, unknown>;
+
+    if (parsed.reporter) {
+      return null;
+    }
+
+    parsed.reporter = "allure-mocha/reporter";
+
+    return stringifyYaml(parsed);
+  }
+
+  // .mocharc.js / .cjs / .mjs
+  if (/\breporter\s*:/.test(text)) {
+    return null;
+  }
+
+  return insertProperty(text, 'reporter: "allure-mocha/reporter",');
 };
 
 const ALREADY_CONFIGURED: Record<string, (text: string) => boolean> = {
   playwright: (text) => text.includes("allure-playwright"),
   wdio: (text) => /['"]allure['"]/.test(text),
   vitest: (text) => text.includes("allure-vitest/reporter"),
-  jest: (text) => text.includes("allure-jest/environment") || /testEnvironment\s*:/.test(text),
+  jest: (text) => text.includes("allure-jest/environment"),
+  mocha: (text) => text.includes("allure-mocha/reporter"),
 };
 
 export const patchFrameworkConfig = async (
@@ -200,6 +249,9 @@ export const patchFrameworkConfig = async (
       break;
     case "jest":
       patchedText = patchJestConfig(text, configPath);
+      break;
+    case "mocha":
+      patchedText = patchMochaConfig(text, configPath);
       break;
     default:
       return { status: "unsupported", configPath };

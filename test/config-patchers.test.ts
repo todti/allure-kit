@@ -191,7 +191,7 @@ describe("kit/config-patchers", () => {
       expect(text).toContain('testEnvironment: "allure-jest/environment",');
     });
 
-    it("doesn't overwrite an existing testEnvironment", async () => {
+    it("doesn't overwrite an existing testEnvironment (JS)", async () => {
       const configPath = join(tempDir, "jest.config.js");
       const original = `module.exports = {\n  testEnvironment: "node",\n};\n`;
 
@@ -199,7 +199,88 @@ describe("kit/config-patchers", () => {
 
       const outcome = await patchFrameworkConfig(tempDir, findFramework("jest"));
 
+      expect(outcome.status).toBe("unrecognized-shape");
+      expect(await readFile(configPath, "utf-8")).toBe(original);
+    });
+
+    it("doesn't overwrite an existing testEnvironment (JSON)", async () => {
+      const configPath = join(tempDir, "jest.config.json");
+      const original = JSON.stringify({ testEnvironment: "node" }, null, 2);
+
+      await writeFile(configPath, original);
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("jest"));
+
+      expect(outcome.status).toBe("unrecognized-shape");
+      expect(await readFile(configPath, "utf-8")).toBe(original);
+    });
+
+    it("reports already-configured only when our own marker is present", async () => {
+      const configPath = join(tempDir, "jest.config.js");
+      const original = `module.exports = {\n  testEnvironment: "allure-jest/environment",\n};\n`;
+
+      await writeFile(configPath, original);
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("jest"));
+
       expect(outcome.status).toBe("already-configured");
+    });
+  });
+
+  describe("mocha", () => {
+    it("sets reporter in a JSON .mocharc", async () => {
+      const configPath = join(tempDir, ".mocharc.json");
+
+      await writeFile(configPath, JSON.stringify({ spec: "test/**/*.spec.js" }, null, 2));
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("mocha"));
+
+      expect(outcome.status).toBe("patched");
+
+      const json = JSON.parse(await readFile(configPath, "utf-8"));
+
+      expect(json.reporter).toBe("allure-mocha/reporter");
+      expect(json.spec).toBe("test/**/*.spec.js");
+    });
+
+    it("sets reporter in a YAML .mocharc", async () => {
+      const configPath = join(tempDir, ".mocharc.yml");
+
+      await writeFile(configPath, "spec: test/**/*.spec.js\n");
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("mocha"));
+
+      expect(outcome.status).toBe("patched");
+
+      const text = await readFile(configPath, "utf-8");
+
+      expect(text).toContain("reporter: allure-mocha/reporter");
+      expect(text).toContain("spec: test/**/*.spec.js");
+    });
+
+    it("inserts reporter into a JS .mocharc", async () => {
+      const configPath = join(tempDir, ".mocharc.js");
+
+      await writeFile(configPath, `module.exports = {\n  spec: "test/**/*.spec.js",\n};\n`);
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("mocha"));
+
+      expect(outcome.status).toBe("patched");
+
+      const text = await readFile(configPath, "utf-8");
+
+      expect(text).toContain('reporter: "allure-mocha/reporter",');
+    });
+
+    it("doesn't overwrite an existing reporter", async () => {
+      const configPath = join(tempDir, ".mocharc.json");
+      const original = JSON.stringify({ reporter: "spec" }, null, 2);
+
+      await writeFile(configPath, original);
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("mocha"));
+
+      expect(outcome.status).toBe("unrecognized-shape");
       expect(await readFile(configPath, "utf-8")).toBe(original);
     });
   });
