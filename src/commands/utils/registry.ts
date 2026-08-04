@@ -81,7 +81,9 @@ export const FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
       ".mocharc.cjs",
       ".mocharc.mjs",
     ],
-    testFilePatterns: ["test/**/*.js", "test/**/*.ts"],
+    // "test/**/*.js" isn't distinctive to mocha — every framework's specs can live in a test/ dir,
+    // so it false-positived alongside e.g. Playwright. Rely on config file / package.json detection only.
+    testFilePatterns: [],
   },
   {
     id: "cypress",
