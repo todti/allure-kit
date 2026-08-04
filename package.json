@@ -1,6 +1,6 @@
 {
   "name": "allure-kit",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Standalone CLI toolkit for bootstrapping and maintaining an Allure 3 setup in JavaScript/TypeScript projects",
   "keywords": [
     "allure",
@@ -44,6 +44,7 @@
   },
   "scripts": {
     "build": "rimraf dist && tsc --project tsconfig.json",
+    "prepublishOnly": "npm run build",
     "clean": "rimraf dist",
     "start": "node ./bin/allure-kit.js",
     "test": "vitest run",
