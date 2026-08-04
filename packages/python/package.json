@@ -2,7 +2,13 @@
   "name": "@todti/allure-kit-python",
   "version": "0.1.0",
   "description": "pip/poetry/pdm/pipenv test-framework detection and package-manager integration for allure-kit.",
-  "keywords": ["allure", "allure3", "python", "pytest", "behave"],
+  "keywords": [
+    "allure",
+    "allure3",
+    "python",
+    "pytest",
+    "behave"
+  ],
   "license": "Apache-2.0",
   "author": "Todti <hellotodt@gmail.com>",
   "homepage": "https://github.com/todti/allure-kit#readme",
@@ -20,7 +26,9 @@
   "exports": {
     ".": "./dist/index.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "sideEffects": false,
   "engines": {
     "node": ">=18"
@@ -34,5 +42,6 @@
   "dependencies": {
     "@todti/allure-kit-core": "^0.1.0",
     "smol-toml": "^1.7.0"
-  }
+  },
+  "private": true
 }

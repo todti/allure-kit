@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { argv } from "node:process";
 
 import { Builtins, Cli } from "clipanion";
@@ -17,9 +18,9 @@ import {
 
 const [, , ...args] = argv;
 
-const pkg: { name: string; version: string } = JSON.parse(
-  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
-);
+// __dirname: this file is only ever run through the esbuild CJS bundle (dist/cli.cjs), never
+// the raw tsc ESM output, so the CJS-native __dirname is always available at runtime.
+const pkg: { name: string; version: string } = JSON.parse(readFileSync(join(__dirname, "../package.json"), "utf8"));
 
 const cli = new Cli({
   binaryName: "allure-kit",

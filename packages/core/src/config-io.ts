@@ -1,10 +1,7 @@
 import { access, readFile, writeFile } from "node:fs/promises";
-import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
-const require = createRequire(import.meta.url);
-const yamlModule: { parse: (source: string) => unknown; stringify: (value: unknown) => string } = require("yaml");
-const { parse: parseYaml, stringify: stringifyYaml } = yamlModule;
+import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 
 export type ConfigFormat = "json" | "yaml" | "mjs";
 
