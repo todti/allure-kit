@@ -1,4 +1,5 @@
 export * from "./adapter.js";
+export * from "./config-patchers.js";
 export * from "./detect-frameworks.js";
 export * from "./detect-package-manager.js";
 export * from "./registry.js";

@@ -23,6 +23,12 @@ export interface DetectedFramework {
   version: string;
 }
 
+export interface ConfigPatchOutcome {
+  status: "patched" | "already-configured" | "no-config-file" | "unsupported" | "unrecognized-shape";
+  configPath?: string;
+  note?: string;
+}
+
 /**
  * The contract every language/ecosystem plugs into. `init` (and, in the
  * npm-only case, `doctor`/`update`) drive their logic entirely through this
@@ -48,4 +54,12 @@ export interface EcosystemAdapter<PackageManager extends string = string> {
   afterInstall?(cwd: string, packageManager: PackageManager, packages: string[]): Promise<void>;
   /** Extra guidance printed after setup completes. */
   postInstallHint?: string;
+  /**
+   * Mechanically wires the framework's adapter into its own config file (e.g. registering the
+   * reporter in playwright.config.ts) — the adapter package alone doesn't make Allure collect
+   * results, it also has to be plugged into the test framework's config. Ecosystems without a
+   * safe mechanical patch for a given config shape (or without this hook at all) fall back to
+   * the framework's `setupHint` printed as a manual step.
+   */
+  patchFrameworkConfig?(cwd: string, framework: FrameworkDescriptor): Promise<ConfigPatchOutcome>;
 }

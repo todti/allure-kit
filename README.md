@@ -8,9 +8,10 @@ A standalone CLI that sets up and maintains [Allure Report 3](https://allurerepo
 
 `allure-kit` automates all of that:
 - detects test frameworks in use and installs the matching Allure adapters,
+- for JS/TS frameworks, wires the reporter into the framework's own config (e.g. adds `reporter: [["allure-playwright"]]` to `playwright.config.ts`) so results actually get produced — not just installs the package,
 - generates and maintains `allurerc` config files (`json`, `yaml`, or `mjs`),
 - manages report plugins (add/remove/list),
-- diagnoses a broken or incomplete setup (`doctor`),
+- diagnoses a broken or incomplete setup (`doctor`), including whether the reporter is actually wired in, not just installed,
 - keeps all installed Allure packages up to date (`update`),
 - scaffolds a GitHub Actions workflow that publishes reports to GitHub Pages.
 
@@ -20,6 +21,7 @@ Detected frameworks: Vitest, Playwright, Jest, Mocha, Cypress, Cucumber.js, Jasm
 
 - **Framework detection** reads `package.json` dependencies (or, for Python, `requirements*.txt`/`pyproject.toml`/`Pipfile`) and looks for known test-framework config files (`playwright.config.ts`, `vitest.config.ts`, `wdio.conf.ts`, `pytest.ini`, `behave.ini`, etc.) to figure out which frameworks are actually in play, then maps each one to its Allure adapter package (e.g. `playwright` → `allure-playwright`, `pytest` → `allure-pytest`).
 - **Package manager detection** looks at the lockfile — `package-lock.json`/`pnpm-lock.yaml`/`yarn.lock`/`bun.lock(b)` for JS/TS, or `poetry.lock`/`pdm.lock`/`Pipfile.lock`/`requirements.txt` for Python — to install adapters with the right tool and flags. A project is treated as Python when `--lang=python` is passed or no `package.json` is found but a Python manifest is present.
+- **Reporter wiring** (JS/TS only) mechanically patches the framework's own config for Playwright, WDIO, Jest, Vitest, Mocha, Cucumber.js, CodeceptJS, Cypress, and Jasmine — matching each adapter's documented setup exactly. It backs off and prints a manual hint instead of guessing when the config is in a shape it doesn't recognize (e.g. an existing `reporter` value that isn't an array), rather than risk silently shadowing your config.
 - **Config generation** writes an `allurerc` file (JSON/YAML/ESM) wiring up the selected report plugins, defaulting to the [`awesome`](https://allurereport.org/docs/plugin-awesome/) HTML report plugin.
 - **`doctor`** re-runs detection and cross-checks it against what's actually installed and configured, flagging missing adapters, unconfigured plugins, or an unused/stale adapter.
 - **`update`** finds every `allure*`/`@allurereport/*` package already in `package.json` and bumps it to latest via the detected package manager.

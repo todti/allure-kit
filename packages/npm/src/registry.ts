@@ -8,7 +8,9 @@ export const FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
     adapterPackage: "allure-vitest",
     setupHint: 'Add "allure-vitest/reporter" to reporters and "allure-vitest/setup" to setupFiles in vitest.config.ts',
     configFilePatterns: ["vitest.config.ts", "vitest.config.js", "vitest.config.mts", "vitest.config.mjs"],
-    testFilePatterns: ["**/*.test.ts", "**/*.test.js", "**/*.spec.ts", "**/*.spec.js"],
+    // *.test.ts / *.spec.ts aren't distinctive to Vitest — Jest and Playwright use the same
+    // naming, so this fallback kept false-positiving alongside them. Config file + deps are enough.
+    testFilePatterns: [],
   },
   {
     id: "playwright",
@@ -22,7 +24,8 @@ export const FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
       "playwright.config.mts",
       "playwright.config.mjs",
     ],
-    testFilePatterns: ["**/*.spec.ts", "**/*.spec.js", "**/e2e/**/*.ts"],
+    // Same overlap problem as Vitest above — *.spec.ts isn't Playwright-specific.
+    testFilePatterns: [],
   },
   {
     id: "jest",
@@ -31,7 +34,8 @@ export const FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
     adapterPackage: "allure-jest",
     setupHint: 'Set testEnvironment to "allure-jest/environment" in jest.config.js',
     configFilePatterns: ["jest.config.ts", "jest.config.js", "jest.config.mjs", "jest.config.cjs", "jest.config.json"],
-    testFilePatterns: ["**/*.test.ts", "**/*.test.js", "**/*.test.tsx", "**/*.test.jsx"],
+    // Same overlap problem — *.test.ts isn't Jest-specific.
+    testFilePatterns: [],
   },
   {
     id: "mocha",
@@ -47,7 +51,9 @@ export const FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
       ".mocharc.cjs",
       ".mocharc.mjs",
     ],
-    testFilePatterns: ["test/**/*.js", "test/**/*.ts"],
+    // "test/**/*.js" isn't distinctive to mocha — every framework's specs can live in a test/ dir,
+    // so it false-positived alongside e.g. Playwright. Rely on config file / package.json detection only.
+    testFilePatterns: [],
   },
   {
     id: "cypress",
@@ -74,7 +80,9 @@ export const FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
     adapterPackage: "allure-jasmine",
     setupHint: "Add AllureJasmineReporter to jasmine helpers in your spec/support/jasmine.json",
     configFilePatterns: ["spec/support/jasmine.json"],
-    testFilePatterns: ["spec/**/*.spec.js", "spec/**/*.spec.ts"],
+    // spec/**/*.spec.js isn't Jasmine-specific either — a spec/ dir with .spec files is common
+    // for other frameworks too. Jasmine's config file signature is unique enough on its own.
+    testFilePatterns: [],
   },
   {
     id: "codeceptjs",

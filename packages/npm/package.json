@@ -27,10 +27,12 @@
   },
   "scripts": {
     "build": "tsc -b tsconfig.json",
+    "prepublishOnly": "npm run build",
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "typecheck": "tsc -b tsconfig.json"
   },
   "dependencies": {
-    "@todti/allure-kit-core": "^0.1.0"
+    "@todti/allure-kit-core": "^0.1.0",
+    "yaml": "^2.8.1"
   }
 }

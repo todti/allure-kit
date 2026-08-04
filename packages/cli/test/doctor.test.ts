@@ -78,4 +78,33 @@ describe("kit/doctor", () => {
 
     expect(output()).toContain("No plugins configured (the 'awesome' plugin will be used by default)");
   });
+
+  const setUpPlaywrightProject = async (configText: string) => {
+    await writeFile(
+      join(tempDir, "package.json"),
+      JSON.stringify({ name: "demo", devDependencies: { "@playwright/test": "^1.40.0" } }),
+    );
+    await writeFile(join(tempDir, "playwright.config.ts"), configText);
+    await writeFile(join(tempDir, "allurerc.json"), JSON.stringify({ name: "Allure Report", plugins: {} }));
+    await mkdir(join(tempDir, "node_modules", "allure-playwright"), { recursive: true });
+    await mkdir(join(tempDir, "node_modules", "allure"), { recursive: true });
+  };
+
+  it("should flag a framework whose adapter is installed but not wired into its config", async () => {
+    await setUpPlaywrightProject(`export default defineConfig({\n  testDir: "./tests",\n});\n`);
+
+    await run();
+
+    expect(output()).toContain("isn't wired into its config");
+    expect(output()).toContain("Found 1 issue");
+  });
+
+  it("should report no issues when the reporter is wired into the config", async () => {
+    await setUpPlaywrightProject(`export default defineConfig({\n  reporter: [["allure-playwright"]],\n});\n`);
+
+    await run();
+
+    expect(output()).toContain("reporter is wired into its config");
+    expect(output()).toContain("No issues found");
+  });
 });

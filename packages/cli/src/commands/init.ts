@@ -10,6 +10,7 @@ import {
   fileExists,
   findExistingConfig,
   logError,
+  logHint,
   logInfo,
   logSuccess,
   logWarning,
@@ -276,6 +277,33 @@ export class KitInitCommand extends Command {
 
     if (ecosystem.postInstallHint) {
       logInfo(ecosystem.postInstallHint);
+    }
+
+    for (const id of selectedFrameworkIds) {
+      const framework = registry.find((f) => f.id === id);
+
+      if (!framework) {
+        continue;
+      }
+
+      const outcome = await ecosystem.patchFrameworkConfig?.(workingDir, framework);
+
+      if (!outcome) {
+        logHint(`${framework.displayName}: ${framework.setupHint}`);
+        continue;
+      }
+
+      if (outcome.status === "patched") {
+        logSuccess(`wired ${framework.adapterPackage} into ${outcome.configPath}`);
+
+        if (outcome.note) {
+          logWarning(outcome.note);
+        }
+      } else if (outcome.status === "already-configured") {
+        logInfo(`${framework.displayName} config already has the Allure reporter`);
+      } else {
+        logHint(`${framework.displayName}: ${framework.setupHint}`);
+      }
     }
 
     const config = buildAllureConfig(reportName, selectedPluginIds);

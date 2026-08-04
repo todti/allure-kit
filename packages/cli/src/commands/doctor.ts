@@ -15,7 +15,13 @@ import {
   logWarning,
   readAllureConfig,
 } from "@todti/allure-kit-core";
-import { detectFrameworks, detectInstalledAllurePackages, detectPackageManager, FRAMEWORK_REGISTRY } from "@todti/allure-kit-npm";
+import {
+  checkFrameworkWiring,
+  detectFrameworks,
+  detectInstalledAllurePackages,
+  detectPackageManager,
+  FRAMEWORK_REGISTRY,
+} from "@todti/allure-kit-npm";
 import { Command, Option } from "clipanion";
 
 const moduleExists = async (moduleName: string, cwd: string): Promise<boolean> => {
@@ -94,12 +100,25 @@ export class KitDoctorCommand extends Command {
       for (const { framework } of detectedFrameworks) {
         const adapterInstalled = await moduleExists(framework.adapterPackage, workingDir);
 
-        if (adapterInstalled) {
-          logSuccess(`${framework.displayName} → ${framework.adapterPackage} installed`);
-        } else {
+        if (!adapterInstalled) {
           logError(`${framework.displayName} detected but ${framework.adapterPackage} is not installed`);
           logHint(`Run: allure-kit init or install ${framework.adapterPackage} manually`);
           issuesFound++;
+          continue;
+        }
+
+        logSuccess(`${framework.displayName} → ${framework.adapterPackage} installed`);
+
+        const wiring = await checkFrameworkWiring(workingDir, framework);
+
+        if (wiring === "wired") {
+          logSuccess(`${framework.displayName} reporter is wired into its config`);
+        } else if (wiring === "not-wired") {
+          logError(`${framework.displayName} adapter is installed but the reporter isn't wired into its config`);
+          logHint(framework.setupHint);
+          issuesFound++;
+        } else if (wiring === "no-config-file") {
+          logWarning(`${framework.displayName} config file not found — can't verify the reporter is wired`);
         }
       }
     }

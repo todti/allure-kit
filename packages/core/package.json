@@ -27,6 +27,7 @@
   },
   "scripts": {
     "build": "tsc -b tsconfig.json",
+    "prepublishOnly": "npm run build",
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "typecheck": "tsc -b tsconfig.json"
   },

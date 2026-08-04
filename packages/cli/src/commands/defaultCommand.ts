@@ -1,7 +1,21 @@
 import * as console from "node:console";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { cwd as processCwd } from "node:process";
 
 import { Command } from "clipanion";
 import colors from "yoctocolors";
+
+const readInstalledAllureVersion = (cwd: string): string | null => {
+  try {
+    const pkgPath = resolve(cwd, "node_modules", "allure", "package.json");
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf-8")) as { version?: string };
+
+    return pkg.version ?? null;
+  } catch {
+    return null;
+  }
+};
 
 const COMMANDS = [
   {
@@ -21,9 +35,14 @@ export class KitDefaultCommand extends Command {
   static paths = [Command.Default, ["help"]];
 
   async execute() {
+    const allureVersion = readInstalledAllureVersion(processCwd());
+
     console.log();
     console.log(`  ${colors.bold("allure-kit")}`);
     console.log(`  ${colors.dim("Allure 3 toolkit")}`);
+    console.log(
+      `  ${colors.dim(allureVersion ? `Allure: v${allureVersion} (installed in this project)` : "Allure: not installed in this project — run allure-kit init")}`,
+    );
     console.log();
     console.log(colors.bold("  Usage:"));
     console.log(`    ${colors.cyan("allure-kit")} ${colors.yellow("<command>")} ${colors.dim("[options]")}`);

@@ -42,6 +42,7 @@
   },
   "scripts": {
     "build": "tsc -b tsconfig.json",
+    "prepublishOnly": "npm run build",
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "start": "node ./bin/allure-kit.js",
     "typecheck": "tsc -b tsconfig.json"
