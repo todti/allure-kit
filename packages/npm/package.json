@@ -1,0 +1,38 @@
+{
+  "name": "@todti/allure-kit-npm",
+  "version": "0.1.0",
+  "description": "npm/yarn/pnpm/bun test-framework detection and package-manager integration for allure-kit.",
+  "keywords": ["allure", "allure3", "npm"],
+  "license": "Apache-2.0",
+  "author": "Todti <hellotodt@gmail.com>",
+  "homepage": "https://github.com/todti/allure-kit#readme",
+  "bugs": {
+    "url": "https://github.com/todti/allure-kit/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/todti/allure-kit.git",
+    "directory": "packages/npm"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": ["dist"],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "prepublishOnly": "npm run build",
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "typecheck": "tsc -b tsconfig.json"
+  },
+  "dependencies": {
+    "@todti/allure-kit-core": "^0.1.0",
+    "yaml": "^2.8.1"
+  }
+}
