@@ -105,6 +105,23 @@ describe("kit/init", () => {
     await expect(command.execute()).rejects.toBeInstanceOf(UsageError);
   });
 
+  it("should wire the reporter into the framework config by default", async () => {
+    await writeFile(join(tempDir, "package.json"), JSON.stringify({ name: "demo" }));
+    await writeFile(
+      join(tempDir, "playwright.config.ts"),
+      `export default defineConfig({\n  testDir: "./tests",\n});\n`,
+    );
+
+    const command = new KitInitCommand();
+    command.cwd = tempDir;
+    command.framework = "playwright";
+
+    await command.execute();
+
+    const text = await readFile(join(tempDir, "playwright.config.ts"), "utf-8");
+    expect(text).toContain('reporter: [["allure-playwright"]]');
+  });
+
   it("should not generate any demo test files", async () => {
     await writeFile(join(tempDir, "package.json"), JSON.stringify({ name: "demo" }));
 
