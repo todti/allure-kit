@@ -242,6 +242,10 @@ export class KitInitCommand extends Command {
 
       if (outcome.status === "patched") {
         logSuccess(`wired ${framework.adapterPackage} into ${outcome.configPath}`);
+
+        if (outcome.note) {
+          logWarning(outcome.note);
+        }
       } else if (outcome.status === "already-configured") {
         logInfo(`${framework.displayName} config already has the Allure reporter`);
       } else {

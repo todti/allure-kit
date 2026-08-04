@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -34,10 +34,8 @@ describe("kit/config-patchers", () => {
     expect(outcome.status).toBe("no-config-file");
   });
 
-  it("returns unsupported for frameworks without a patcher", async () => {
-    await writeFile(join(tempDir, "cypress.config.ts"), "export default defineConfig({})");
-
-    const outcome = await patchFrameworkConfig(tempDir, findFramework("cypress"));
+  it("returns unsupported for frameworks without a patcher (e.g. Newman, no config file at all)", async () => {
+    const outcome = await patchFrameworkConfig(tempDir, findFramework("newman"));
 
     expect(outcome.status).toBe("unsupported");
   });
@@ -300,12 +298,228 @@ describe("kit/config-patchers", () => {
       expect(text).toContain('reporters: [["allure", { outputDir: "allure-results" }], "spec"]');
     });
 
-    it("returns unrecognized-shape when there's no reporters array and the export isn't a plain object", async () => {
+    it("inserts a reporters property for the `export const config = {...}` shape too", async () => {
       const configPath = join(tempDir, "wdio.conf.ts");
 
       await writeFile(configPath, `export const config = {\n  runner: "local",\n};\n`);
 
       const outcome = await patchFrameworkConfig(tempDir, findFramework("wdio"));
+
+      expect(outcome.status).toBe("patched");
+
+      const text = await readFile(configPath, "utf-8");
+
+      expect(text).toContain('reporters: [["allure", { outputDir: "allure-results" }]],');
+    });
+
+    it("returns unrecognized-shape when the config is built dynamically (spread from another module)", async () => {
+      const configPath = join(tempDir, "wdio.conf.ts");
+      const original = `const base = require("./wdio.base.conf.js");\n\nexports.config = { ...base, runner: "local" };\n`;
+
+      await writeFile(configPath, original);
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("wdio"));
+
+      expect(outcome.status).toBe("unrecognized-shape");
+      expect(await readFile(configPath, "utf-8")).toBe(original);
+    });
+  });
+
+  describe("cucumberjs", () => {
+    it("adds format to an existing default profile array (JS)", async () => {
+      const configPath = join(tempDir, "cucumber.js");
+
+      await writeFile(
+        configPath,
+        `module.exports = {\n  default: {\n    format: ["json:reports/report.json"],\n  },\n};\n`,
+      );
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("cucumberjs"));
+
+      expect(outcome.status).toBe("patched");
+
+      const text = await readFile(configPath, "utf-8");
+
+      expect(text).toContain('format: ["allure-cucumberjs/reporter", "json:reports/report.json"]');
+    });
+
+    it("inserts a default profile when none exists (JS)", async () => {
+      const configPath = join(tempDir, "cucumber.js");
+
+      await writeFile(configPath, `module.exports = {};\n`);
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("cucumberjs"));
+
+      expect(outcome.status).toBe("patched");
+
+      const text = await readFile(configPath, "utf-8");
+
+      expect(text).toContain('default: { format: ["allure-cucumberjs/reporter"], },');
+    });
+
+    it("adds format to an existing default profile array (YAML)", async () => {
+      const configPath = join(tempDir, "cucumber.yml");
+
+      await writeFile(configPath, "default:\n  format:\n    - json:reports/report.json\n");
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("cucumberjs"));
+
+      expect(outcome.status).toBe("patched");
+
+      const text = await readFile(configPath, "utf-8");
+
+      expect(text).toContain("allure-cucumberjs/reporter");
+      expect(text).toContain("json:reports/report.json");
+    });
+
+    it("returns unrecognized-shape for an old-style CLI-flag string profile", async () => {
+      const configPath = join(tempDir, "cucumber.yml");
+
+      await writeFile(configPath, "default: --require features --format json:reports/report.json\n");
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("cucumberjs"));
+
+      expect(outcome.status).toBe("unrecognized-shape");
+    });
+  });
+
+  describe("codeceptjs", () => {
+    it("adds the allure plugin to an existing plugins object", async () => {
+      const configPath = join(tempDir, "codecept.conf.js");
+
+      await writeFile(
+        configPath,
+        `module.exports.config = {\n  plugins: {\n    retryFailedStep: { enabled: true },\n  },\n};\n`,
+      );
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("codeceptjs"));
+
+      expect(outcome.status).toBe("patched");
+
+      const text = await readFile(configPath, "utf-8");
+
+      expect(text).toContain('allure: { enabled: true, require: "allure-codeceptjs" },');
+      expect(text).toContain("retryFailedStep");
+    });
+
+    it("inserts a plugins object when none exists", async () => {
+      const configPath = join(tempDir, "codecept.conf.js");
+
+      await writeFile(configPath, `module.exports.config = {\n  tests: "./*_test.js",\n};\n`);
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("codeceptjs"));
+
+      expect(outcome.status).toBe("patched");
+
+      const text = await readFile(configPath, "utf-8");
+
+      expect(text).toContain('plugins: { allure: { enabled: true, require: "allure-codeceptjs" } },');
+    });
+
+    it("returns unrecognized-shape when an allure plugin entry already exists with a different value", async () => {
+      const configPath = join(tempDir, "codecept.conf.js");
+      const original = `module.exports.config = {\n  plugins: {\n    allure: { enabled: false },\n  },\n};\n`;
+
+      await writeFile(configPath, original);
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("codeceptjs"));
+
+      expect(outcome.status).toBe("unrecognized-shape");
+      expect(await readFile(configPath, "utf-8")).toBe(original);
+    });
+  });
+
+  describe("cypress", () => {
+    it("wires setupNodeEvents and the support file", async () => {
+      await writeFile(
+        join(tempDir, "cypress.config.ts"),
+        `import { defineConfig } from "cypress";\n\nexport default defineConfig({\n  e2e: {\n    setupNodeEvents(on, config) {\n      return config;\n    },\n  },\n});\n`,
+      );
+      await mkdir(join(tempDir, "cypress", "support"), { recursive: true });
+      await writeFile(join(tempDir, "cypress/support/e2e.ts"), `import "./commands";\n`);
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("cypress"));
+
+      expect(outcome.status).toBe("patched");
+
+      const configText = await readFile(join(tempDir, "cypress.config.ts"), "utf-8");
+
+      expect(configText).toContain('import { allureCypress } from "allure-cypress/reporter";');
+      expect(configText).toContain("allureCypress(on, config);");
+
+      const supportText = await readFile(join(tempDir, "cypress/support/e2e.ts"), "utf-8");
+
+      expect(supportText).toContain('import "allure-cypress";');
+    });
+
+    it("patches the config but notes a missing support file", async () => {
+      await writeFile(
+        join(tempDir, "cypress.config.ts"),
+        `export default defineConfig({\n  e2e: {\n    setupNodeEvents(on, config) {\n      return config;\n    },\n  },\n});\n`,
+      );
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("cypress"));
+
+      expect(outcome.status).toBe("patched");
+      expect(outcome.note).toContain("support/e2e");
+    });
+
+    it("returns unrecognized-shape when setupNodeEvents isn't found", async () => {
+      const configPath = join(tempDir, "cypress.config.ts");
+      const original = `export default defineConfig({\n  e2e: {\n    baseUrl: "http://localhost:3000",\n  },\n});\n`;
+
+      await writeFile(configPath, original);
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("cypress"));
+
+      expect(outcome.status).toBe("unrecognized-shape");
+      expect(await readFile(configPath, "utf-8")).toBe(original);
+    });
+  });
+
+  describe("jasmine", () => {
+    it("creates a helper file matching the default helpers glob", async () => {
+      const jasmineDir = join(tempDir, "spec", "support");
+
+      await mkdir(jasmineDir, { recursive: true });
+      await writeFile(
+        join(jasmineDir, "jasmine.json"),
+        JSON.stringify({ spec_dir: "spec", helpers: ["helpers/**/*.js"] }, null, 2),
+      );
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("jasmine"));
+
+      expect(outcome.status).toBe("patched");
+
+      const helperText = await readFile(join(tempDir, "helpers", "allure.reporter.js"), "utf-8");
+
+      expect(helperText).toContain('require("allure-jasmine")');
+      expect(helperText).toContain("addReporter");
+    });
+
+    it("reports already-configured when the helper file exists with our marker", async () => {
+      const jasmineDir = join(tempDir, "spec", "support");
+
+      await mkdir(jasmineDir, { recursive: true });
+      await writeFile(
+        join(jasmineDir, "jasmine.json"),
+        JSON.stringify({ helpers: ["helpers/**/*.js"] }, null, 2),
+      );
+      await mkdir(join(tempDir, "helpers"), { recursive: true });
+      await writeFile(join(tempDir, "helpers", "allure.reporter.js"), 'require("allure-jasmine");\n');
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("jasmine"));
+
+      expect(outcome.status).toBe("already-configured");
+    });
+
+    it("returns unrecognized-shape when the helpers glob shape isn't recognized", async () => {
+      const jasmineDir = join(tempDir, "spec", "support");
+
+      await mkdir(jasmineDir, { recursive: true });
+      await writeFile(join(jasmineDir, "jasmine.json"), JSON.stringify({ helpers: ["helpers/*.js"] }, null, 2));
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("jasmine"));
 
       expect(outcome.status).toBe("unrecognized-shape");
     });
