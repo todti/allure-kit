@@ -11,7 +11,7 @@ import prompts from "prompts";
 
 const WORKFLOW_FILE_RELATIVE_PATH = join(".github", "workflows", "allure-gh-pages.yml");
 
-const getInstallCommand = (packageManager: string): string => {
+export const getInstallCommand = (packageManager: string): string => {
   switch (packageManager) {
     case "npm":
       return "npm ci";
@@ -23,7 +23,7 @@ const getInstallCommand = (packageManager: string): string => {
   }
 };
 
-const getTestCommand = (packageManager: string): string => {
+export const getTestCommand = (packageManager: string): string => {
   switch (packageManager) {
     case "npm":
       return "npm test";

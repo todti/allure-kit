@@ -10,6 +10,7 @@ import {
   KitDefaultCommand,
   KitDoctorCommand,
   KitGhPagesInitCommand,
+  KitGitlabInitCommand,
   KitInitCommand,
   KitPluginAddCommand,
   KitPluginEditCommand,
@@ -35,6 +36,7 @@ cli.register(KitInitCommand);
 cli.register(KitUpdateCommand);
 cli.register(KitDoctorCommand);
 cli.register(KitGhPagesInitCommand);
+cli.register(KitGitlabInitCommand);
 cli.register(KitPluginAddCommand);
 cli.register(KitPluginEditCommand);
 cli.register(KitPluginRemoveCommand);
