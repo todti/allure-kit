@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@todti/allure-kit-core": "^0.1.0",
-    "smol-toml": "^1.7.0"
+    "smol-toml": "^1.9.0"
   },
   "private": true
 }
