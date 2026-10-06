@@ -37,6 +37,17 @@ export const REPORT_PLUGIN_REGISTRY: ReportPluginDescriptor[] = [
       { name: "singleFile", description: "Emit single HTML file", type: "boolean", defaultValue: false },
       { name: "reportLanguage", description: "Report language (e.g. en, ru, zh)", type: "text" },
       { name: "logo", description: "Logo URL or path", type: "text" },
+      {
+        name: "layout",
+        description: "Report layout",
+        type: "select",
+        defaultValue: "base",
+        choices: [
+          { title: "Base", value: "base" },
+          { title: "Split", value: "split" },
+        ],
+      },
+      { name: "appendTitlePath", description: "Append the title path to test names", type: "boolean", defaultValue: false },
     ],
   },
   {
@@ -115,6 +126,7 @@ export const REPORT_PLUGIN_REGISTRY: ReportPluginDescriptor[] = [
       },
       { name: "allSteps", description: "Include all steps in output", type: "boolean", defaultValue: false },
       { name: "withTrace", description: "Include stack traces", type: "boolean", defaultValue: false },
+      { name: "qualityGateResults", description: "Print quality gate results (incl. passed)", type: "boolean", defaultValue: false },
     ],
   },
   {

@@ -10,3 +10,6 @@ export { KitPluginAddCommand } from "./pluginAdd.js";
 export { KitPluginEditCommand } from "./pluginEdit.js";
 export { KitPluginRemoveCommand } from "./pluginRemove.js";
 export { KitPluginListCommand } from "./pluginList.js";
+
+export { KitConfigGetCommand, KitConfigSetCommand } from "./config.js";
+export { KitGitlabInitCommand } from "./gitlabInit.js";

@@ -108,6 +108,23 @@ Creates a GitHub Actions workflow that generates an Allure report and publishes 
 allure-kit gh-pages init [--yes] [--branch <name>] [--config <path>] [--test-command <cmd>] [--cwd <path>]
 ```
 
+### `gitlab init`
+
+Creates a GitLab CI job (`.gitlab/allure-report.gitlab-ci.yml`, included from `.gitlab-ci.yml`) that runs your tests and calls `allure gitlab`: it builds the report, restores history from the previous run, and posts a summary comment on merge requests. Set a masked `GITLAB_TOKEN` CI/CD variable (api scope) to enable history restore and comments.
+
+```bash
+allure-kit gitlab init [--yes] [--image <image>] [--config <path>] [--test-command <cmd>] [--cwd <path>]
+```
+
+### `config get` / `config set`
+
+Read or write top-level `allurerc` options (`resultsDir`, `historyPath`, `historyBaseUrl`, `knownIssuesPath`, `flakyDetection.historyDepth`, `flakyDetection.includePassedTests`). JSON/YAML configs only.
+
+```bash
+allure-kit config set flakyDetection.historyDepth 10
+allure-kit config get resultsDir
+```
+
 ### `plugin list`
 
 ```bash
