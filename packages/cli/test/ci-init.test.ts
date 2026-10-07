@@ -115,16 +115,15 @@ describe("kit/ci-init", () => {
       expect(await run("jenkins")).toContain("archiveArtifacts artifacts: 'build/reports/allure-report/allureReport/**'");
     });
 
-    it("refuses Maven projects", async () => {
-      await writeFile(join(dir, "pom.xml"), "<project/>");
+    it("builds the Maven report with the Node-based CLI from target/allure-results", async () => {
+      const mavenProject = () => writeFile(join(dir, "pom.xml"), "<project/>");
+      const config = parseYaml(await run("circleci", mavenProject));
+      const text = JSON.stringify(config);
 
-      const command = new KitCiInitCommand();
-
-      command.provider = "circleci";
-      command.cwd = dir;
-      command.yes = true;
-
-      await expect(command.execute()).rejects.toThrow(/only available for Gradle/);
+      expect(config.jobs["allure-report"].docker[0].image).toBe("cimg/openjdk:17.0-node");
+      expect(text).toContain("mvn -B test || touch .tests-failed");
+      expect(text).toContain("npx --yes allure generate target/allure-results --output allure-report");
+      expect(await run("azure")).toContain("NodeTool@0");
     });
   });
 });
