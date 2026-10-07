@@ -26,7 +26,7 @@ If you ran `allure-kit init` before this release, run `allure-kit doctor`: it no
 - `demo`: writes a minimal passing test for each detected framework (Vitest, Jest, Mocha, Playwright, Jasmine, Cucumber.js, pytest, Pytest-BDD, Behave, Robot Framework, JUnit 5) and prints how to run it; the end-to-end suite builds its tests with it.
 - `migrate`: JS/TS from Allure 2 (`allure-commandline`, `allure serve`, `--clean`) and Java (`allure-junit5` → `allure-jupiter`).
 - `ci init <circleci|jenkins|azure|bitbucket>`; `gitlab init` (JS/TS and Python); `gh-pages init` supports Python.
-- `config get|set|list|unset` (`name`, `output`, `resultsDir`, `historyPath`, `appendHistory`, `historyLimit`, `historyBaseUrl`, `environment`, `port`, `flakyDetection.*`); `config set/unset` and `plugin add/remove` now edit a literal-object `allurerc.mjs` in place.
+- `config get|set|list|unset` (`name`, `output`, `resultsDir`, `historyPath`, `appendHistory`, `historyLimit`, `historyBaseUrl`, `environment`, `port`, `flakyDetection.*`, and structured `qualityGate`, `categories`, `variables`, `defaultLabels`, `hideLabels`, `allowedEnvironments`, `globalAttachments` as JSON); `config set/unset` and `plugin add/remove` now edit a literal-object `allurerc.mjs` in place.
 - `update --dry-run` and an `installed → latest` preview that flags major upgrades and skips packages that are already current.
 - A nightly end-to-end run (`npm run e2e`, `.github/workflows/e2e.yml`) that installs real frameworks and checks that `allure-results` appear, against pinned and latest versions; and a tag-triggered release workflow with npm provenance (see RELEASING.md).
 
