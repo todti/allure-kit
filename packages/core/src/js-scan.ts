@@ -149,3 +149,30 @@ export const findTopLevelProperty = (text: string, openIdx: number, key: string)
 
   return null;
 };
+
+/** Index just past the value starting at `start`: a string/template literal, a bracketed block, or a bare token up to `,`/newline/closing bracket. */
+export const skipValue = (text: string, start: number): number => {
+  const skipped = skipTrivia(text, start);
+
+  if (skipped !== start) {
+    return skipped;
+  }
+
+  if (OPENERS.has(text[start])) {
+    const close = findMatchingBracket(text, start);
+
+    return close === null ? text.length : close + 1;
+  }
+
+  let end = start;
+
+  while (end < text.length && !",\n}])".includes(text[end])) {
+    end++;
+  }
+
+  while (end > start && /\s/.test(text[end - 1])) {
+    end--;
+  }
+
+  return end;
+};

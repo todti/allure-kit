@@ -141,7 +141,7 @@ allure-kit gitlab init [--yes] [--image <image>] [--config <path>] [--test-comma
 
 ### `config get` / `config set` / `config list` / `config unset`
 
-Read, write, list or remove top-level `allurerc` options (`name`, `output`, `resultsDir`, `historyPath`, `appendHistory`, `historyLimit`, `historyBaseUrl`, `knownIssuesPath`, `environment`, `port`, `flakyDetection.historyDepth`, `flakyDetection.includePassedTests`). JSON/YAML configs only.
+Read, write, list or remove top-level `allurerc` options (`name`, `output`, `resultsDir`, `historyPath`, `appendHistory`, `historyLimit`, `historyBaseUrl`, `knownIssuesPath`, `environment`, `port`, `flakyDetection.historyDepth`, `flakyDetection.includePassedTests`). Works on JSON/YAML configs, and on an `allurerc.mjs` / `.cjs` whose config is a plain object literal (`export default defineConfig({...})`, `export default {...}`, `module.exports = ...`) — those are edited in place as text, so comments and formatting survive. `config get` / `config list` can't evaluate an ESM config and only work for JSON/YAML.
 
 ```bash
 allure-kit config set flakyDetection.historyDepth 10
