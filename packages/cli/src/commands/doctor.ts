@@ -32,11 +32,13 @@ import { resolveEcosystem } from "../ecosystems.js";
 import {
   checkAdapterCompat,
   checkAllureCliGeneration,
+  checkAllureActionPermissions,
   checkAllureJsVersionAlignment,
   checkFrameworkCaveats,
   checkPluginImports,
   checkConfigCombinations,
   checkTestPlanEnv,
+  readGithubWorkflows,
   type DoctorFinding,
 } from "../doctor-checks.js";
 
@@ -342,6 +344,7 @@ export class KitDoctorCommand extends Command {
       ...(await checkAllureJsVersionAlignment(workingDir)),
       ...(existingConfig ? checkConfigCombinations(await readFile(existingConfig.path, "utf-8")) : []),
       ...(parsedConfig ? checkPluginImports(parsedConfig, workingDir) : []),
+      ...checkAllureActionPermissions(await readGithubWorkflows(workingDir)),
       ...(await checkTestPlanEnv(process.env, workingDir)),
       ...checkFrameworkCaveats(detectedFrameworks.map(({ framework }) => framework.id)),
     ];
