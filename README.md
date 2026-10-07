@@ -88,10 +88,10 @@ Flags:
 ### `update`
 
 ```bash
-allure-kit update [--yes] [--cwd <path>]
+allure-kit update [--yes] [--dry-run] [--cwd <path>]
 ```
 
-Finds every installed Allure package (CLI, adapters, plugins) and updates them all to latest via your package manager.
+Finds every installed Allure package (CLI, adapters, plugins), looks up the latest version of each with `npm view`, and shows `installed → latest` (major upgrades are flagged). Packages that are already current are skipped; the rest are updated to latest via your package manager after confirmation. If the registry can't be reached the package is still updated, as before. `--dry-run` only prints the plan.
 
 ### `migrate`
 
