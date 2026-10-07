@@ -384,3 +384,49 @@ export const checkPlaywrightFullName = (playwrightConfigSource: string, allureCo
     },
   ];
 };
+
+/**
+ * Top-level `allurerc` fields that Allure 3.20 accepts (`validateConfig` in @allurereport/core): any other key makes
+ * every command fail with "The provided Allure config contains unsupported fields". `knownIssuesPath`, for example,
+ * is not one of them (known issues live under `resolutions`).
+ */
+export const ALLURE_SUPPORTED_CONFIG_FIELDS = [
+  "name",
+  "output",
+  "open",
+  "port",
+  "hideLabels",
+  "historyPath",
+  "historyBaseUrl",
+  "historyLimit",
+  "flakyDetection",
+  "resolutions",
+  "plugins",
+  "defaultLabels",
+  "variables",
+  "environment",
+  "allowedEnvironments",
+  "environments",
+  "appendHistory",
+  "qualityGate",
+  "performance",
+  "allureService",
+  "categories",
+  "globalAttachments",
+  "resultsDir",
+  "dump",
+];
+
+export const checkUnsupportedConfigFields = (config: Record<string, unknown>): DoctorFinding[] => {
+  const unsupported = Object.keys(config).filter((key) => !ALLURE_SUPPORTED_CONFIG_FIELDS.includes(key));
+
+  return unsupported.length === 0
+    ? []
+    : [
+        {
+          level: "error",
+          message: `allurerc has fields Allure 3.20 rejects: ${unsupported.join(", ")} — every allure command fails with "unsupported fields"`,
+          hint: "Remove them (known issues belong under `resolutions`, or use `allure generate --known-issues <file>`); a newer Allure may accept more fields",
+        },
+      ];
+};

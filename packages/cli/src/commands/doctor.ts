@@ -38,6 +38,7 @@ import {
   checkFrameworkCaveats,
   checkPlaywrightFullName,
   checkPluginImports,
+  checkUnsupportedConfigFields,
   checkConfigCombinations,
   checkTestPlanEnv,
   readGithubWorkflows,
@@ -384,6 +385,7 @@ export class KitDoctorCommand extends Command {
       ...(await checkAllureJsVersionAlignment(workingDir)),
       ...(existingConfig ? checkConfigCombinations(await readFile(existingConfig.path, "utf-8")) : []),
       ...(parsedConfig ? checkPluginImports(parsedConfig, workingDir) : []),
+      ...(parsedConfig ? checkUnsupportedConfigFields(parsedConfig) : []),
       ...checkAllureActionPermissions(await readGithubWorkflows(workingDir)),
       ...checkPlaywrightFullName(
         (await readPlaywrightConfig(workingDir)) ?? "",

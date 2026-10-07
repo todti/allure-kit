@@ -12,6 +12,7 @@ import {
   checkFrameworkCaveats,
   checkPlaywrightFullName,
   checkPluginImports,
+  checkUnsupportedConfigFields,
   checkConfigCombinations,
   checkTestPlanEnv,
   compareVersions,
@@ -223,6 +224,22 @@ describe("kit/doctor-checks", () => {
     it("is quiet once useLegacyFullName is set or the reporter isn't wired", () => {
       expect(checkPlaywrightFullName(`reporter: [["allure-playwright", { useLegacyFullName: true }]]`, testops)).toEqual([]);
       expect(checkPlaywrightFullName(`reporter: "html"`, testops)).toEqual([]);
+    });
+  });
+
+  describe("checkUnsupportedConfigFields", () => {
+    it("errors on fields Allure rejects, e.g. the knownIssuesPath older allure-kit versions could write", () => {
+      const findings = checkUnsupportedConfigFields({ name: "R", knownIssuesPath: "./known.json", plugins: {}, bogus: 1 });
+
+      expect(findings).toHaveLength(1);
+      expect(findings[0].level).toBe("error");
+      expect(findings[0].message).toContain("knownIssuesPath, bogus");
+    });
+
+    it("accepts every field allure-kit itself writes", () => {
+      expect(
+        checkUnsupportedConfigFields({ name: "R", output: "./o", plugins: {}, historyPath: "h", appendHistory: true, historyLimit: 3, flakyDetection: {}, resultsDir: "r", environment: "e", port: "1" }),
+      ).toEqual([]);
     });
   });
 });
