@@ -13,9 +13,13 @@ import { getInstallCommand, getPythonInstallCommand, getPythonTestCommand, getTe
 
 interface CiPlan {
   python: boolean;
+  java: boolean;
   installCommand: string;
   testCommand: string;
+  /** Complete report command, including where it writes. */
   generateCommand: string;
+  /** Directory the report ends up in, relative to the repository root. */
+  reportDir: string;
 }
 
 interface CiProvider {
@@ -29,7 +33,7 @@ interface CiProvider {
 
 const groovySingleQuoted = (command: string) => command.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 
-const CIRCLE_IMAGE = { js: "cimg/node:20.11", python: "cimg/python:3.12-node" };
+const CIRCLE_IMAGE = { js: "cimg/node:20.11", python: "cimg/python:3.12-node", java: "cimg/openjdk:17.0" };
 
 /** Every provider follows the same shape: install, run tests without aborting, generate the report, keep it as an artifact, then fail if tests failed. */
 export const CI_PROVIDERS: Record<string, CiProvider> = {
@@ -42,7 +46,7 @@ export const CI_PROVIDERS: Record<string, CiProvider> = {
 jobs:
   allure-report:
     docker:
-      - image: ${plan.python ? CIRCLE_IMAGE.python : CIRCLE_IMAGE.js}
+      - image: ${plan.java ? CIRCLE_IMAGE.java : plan.python ? CIRCLE_IMAGE.python : CIRCLE_IMAGE.js}
     steps:
       - checkout
       - run:
@@ -53,10 +57,10 @@ jobs:
           command: ${plan.testCommand} || touch .tests-failed
       - run:
           name: Generate Allure report
-          command: ${plan.generateCommand} --output allure-report
+          command: ${plan.generateCommand}
           when: always
       - store_artifacts:
-          path: allure-report
+          path: ${plan.reportDir}
           destination: allure-report
       - run:
           name: Fail the job if tests failed
@@ -82,13 +86,13 @@ pipelines:
         script:
           - ${plan.installCommand}
           - ${plan.testCommand} || touch .tests-failed
-          - ${plan.generateCommand} --output allure-report
+          - ${plan.generateCommand}
           - test ! -f .tests-failed
         artifacts:
           - name: allure-report
             type: scoped
             paths:
-              - allure-report/**
+              - ${plan.reportDir}/**
             capture-on: always
 `,
   },
@@ -117,14 +121,14 @@ pipelines:
     }
     stage('Allure report') {
       steps {
-        sh '${groovySingleQuoted(plan.generateCommand)} --output allure-report'
+        sh '${groovySingleQuoted(plan.generateCommand)}'
       }
     }
   }
 
   post {
     always {
-      archiveArtifacts artifacts: 'allure-report/**', allowEmptyArchive: true
+      archiveArtifacts artifacts: '${plan.reportDir}/**', allowEmptyArchive: true
     }
   }
 }
@@ -148,19 +152,23 @@ ${
       versionSpec: "3.12"
 `
     : ""
-}  - task: NodeTool@0
+}${
+  plan.java
+    ? ""
+    : `  - task: NodeTool@0
     inputs:
       versionSpec: "20.x"
-  - script: ${plan.installCommand}
+`
+}  - script: ${plan.installCommand}
     displayName: Install dependencies
   - script: ${plan.testCommand} || echo "##vso[task.setvariable variable=TESTS_FAILED]1"
     displayName: Run tests (produce allure-results)
-  - script: ${plan.generateCommand} --output allure-report
+  - script: ${plan.generateCommand}
     displayName: Generate Allure report
     condition: succeededOrFailed()
   - task: PublishPipelineArtifact@1
     inputs:
-      targetPath: allure-report
+      targetPath: ${plan.reportDir}
       artifact: allure-report
     condition: succeededOrFailed()
   - script: exit 1
@@ -215,32 +223,45 @@ export class KitCiInitCommand extends Command {
     console.log(`\n  Allure CI Setup (${provider.description})\n`);
 
     const ecosystem = await resolveEcosystem(workingDir, typeof this.lang === "string" ? this.lang : undefined);
-    if (ecosystem.setupViaBuildFile) {
-      throw new UsageError(
-        `CI scaffolding isn't available for ${ecosystem.displayName} projects yet. With Gradle the report task is "./gradlew test allureReport", publishing build/reports/allure-report/allureReport/.`,
-      );
-    }
-
-    const python = ecosystem.id !== "npm";
-
-    if (python && provider.jsOnly) {
-      throw new UsageError(
-        `${provider.description} runs a single container image, so a Python+Node pipeline isn't generated. Use circleci, jenkins or azure for Python projects.`,
-      );
-    }
-
     const packageManager = await ecosystem.detectPackageManager(workingDir);
-    const plan: CiPlan = {
-      python,
-      installCommand: python ? getPythonInstallCommand(packageManager) : getInstallCommand(packageManager),
-      testCommand:
-        typeof this.testCommand === "string"
-          ? this.testCommand
-          : python
-            ? getPythonTestCommand(packageManager, (await ecosystem.detectFrameworks(workingDir))[0]?.framework.id)
-            : getTestCommand(packageManager),
-      generateCommand: python ? "npx --yes allure generate" : "npx allure generate",
-    };
+    const java = ecosystem.id === "java";
+
+    if (java && packageManager !== "gradle") {
+      throw new UsageError(
+        "CI scaffolding for Java is only available for Gradle projects (the Allure Gradle plugin provides the report task). For Maven, run your tests, then `allure generate` on target/allure-results.",
+      );
+    }
+
+    const python = ecosystem.id === "pip";
+
+    if ((python || java) && provider.jsOnly) {
+      throw new UsageError(
+        `${provider.description} runs a single container image, so a ${java ? "Java" : "Python+Node"} pipeline isn't generated. Use circleci, jenkins or azure for non-JS projects.`,
+      );
+    }
+
+    const testCommand = typeof this.testCommand === "string" ? this.testCommand : undefined;
+    const plan: CiPlan = java
+      ? {
+          python: false,
+          java: true,
+          installCommand: "chmod +x ./gradlew",
+          testCommand: testCommand ?? "./gradlew test",
+          generateCommand: "./gradlew allureReport",
+          reportDir: "build/reports/allure-report/allureReport",
+        }
+      : {
+          python,
+          java: false,
+          installCommand: python ? getPythonInstallCommand(packageManager) : getInstallCommand(packageManager),
+          testCommand:
+            testCommand ??
+            (python
+              ? getPythonTestCommand(packageManager, (await ecosystem.detectFrameworks(workingDir))[0]?.framework.id)
+              : getTestCommand(packageManager)),
+          generateCommand: `${python ? "npx --yes allure generate" : "npx allure generate"} --output allure-report`,
+          reportDir: "allure-report",
+        };
 
     if (existsSync(target) && this.yes !== true) {
       logWarning(`${provider.file} already exists`);
