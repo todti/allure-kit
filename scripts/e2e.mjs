@@ -64,10 +64,10 @@ const write = (dir, file, content) => {
 scenario("vitest: init, doctor, run tests, generate report", (dir) => {
   write(dir, "package.json", JSON.stringify({ name: "e2e-vitest", private: true, type: "module", devDependencies: { vitest: version("^3.0.0") } }));
   write(dir, "vitest.config.ts", 'import { defineConfig } from "vitest/config";\n\nexport default defineConfig({\n  test: {},\n});\n');
-  write(dir, "sum.test.ts", 'import { expect, test } from "vitest";\n\ntest("sum", () => {\n  expect(1 + 1).toBe(2);\n});\n');
   run(dir, "npm", ["install", "--no-audit", "--no-fund"]);
 
   kit(dir, "init", "--yes");
+  kit(dir, "demo", "--framework", "vitest");
   assert(existsSync(join(dir, "allurerc.json")), "allurerc.json was created");
   assert(readFileSync(join(dir, "vitest.config.ts"), "utf-8").includes("allure-vitest/reporter"), "vitest config was wired");
 
@@ -82,7 +82,7 @@ scenario("vitest: init, doctor, run tests, generate report", (dir) => {
 });
 
 // Every framework follows the same path: install it, `init`, `doctor` is clean, run a trivial passing test, results appear.
-const frameworkScenario = ({ id, devDependencies, files, command }) =>
+const frameworkScenario = ({ id, devDependencies, files, command, demo = true }) =>
   scenario(`${id}: init wires the reporter and tests produce allure-results`, (dir) => {
     write(dir, "package.json", JSON.stringify({ name: `e2e-${id}`, private: true, devDependencies }));
 
@@ -97,6 +97,11 @@ const frameworkScenario = ({ id, devDependencies, files, command }) =>
 
     assert(doctor.ok === true, `doctor reports no issues (got ${JSON.stringify(doctor.checks.filter((c) => c.level === "error"))})`);
 
+    // The test comes from `allure-kit demo` where a template exists, so the templates are verified on real frameworks too.
+    if (demo) {
+      kit(dir, "demo", "--framework", id);
+    }
+
     run(dir, command[0], command.slice(1));
     assert(existsSync(join(dir, "allure-results")), "allure-results were written");
   });
@@ -106,7 +111,6 @@ frameworkScenario({
   devDependencies: { jest: version("^29.7.0") },
   files: {
     "jest.config.js": "module.exports = {};\n",
-    "sum.test.js": 'test("sum", () => {\n  expect(1 + 1).toBe(2);\n});\n',
   },
   command: ["npx", "jest"],
 });
@@ -116,7 +120,6 @@ frameworkScenario({
   devDependencies: { mocha: version("^10.8.2") },
   files: {
     ".mocharc.json": JSON.stringify({ spec: "test/*.js" }),
-    "test/sum.js": 'const assert = require("node:assert");\n\nit("sum", () => {\n  assert.equal(1 + 1, 2);\n});\n',
   },
   command: ["npx", "mocha"],
 });
@@ -126,7 +129,6 @@ frameworkScenario({
   devDependencies: { "@playwright/test": version("^1.50.0") },
   files: {
     "playwright.config.ts": 'import { defineConfig } from "@playwright/test";\n\nexport default defineConfig({\n  testDir: "./tests",\n});\n',
-    "tests/sum.spec.ts": 'import { expect, test } from "@playwright/test";\n\ntest("sum", () => {\n  expect(1 + 1).toBe(2);\n});\n',
   },
   command: ["npx", "playwright", "test"],
 });
@@ -136,7 +138,6 @@ frameworkScenario({
   devDependencies: { jasmine: version("^5.4.0") },
   files: {
     "spec/support/jasmine.json": JSON.stringify({ spec_dir: "spec", spec_files: ["**/*[sS]pec.js"], helpers: ["helpers/**/*.js"] }),
-    "spec/sum.spec.js": 'describe("suite", () => {\n  it("sum", () => {\n    expect(1 + 1).toBe(2);\n  });\n});\n',
   },
   command: ["npx", "jasmine"],
 });
@@ -146,8 +147,6 @@ frameworkScenario({
   devDependencies: { "@cucumber/cucumber": version("^11.0.0") },
   files: {
     "cucumber.js": "module.exports = { default: {} };\n",
-    "features/sum.feature": "Feature: sum\n  Scenario: add\n    Given a number\n",
-    "features/steps.js": 'const { Given } = require("@cucumber/cucumber");\n\nGiven("a number", function () {});\n',
   },
   command: ["npx", "cucumber-js"],
 });
@@ -159,6 +158,7 @@ frameworkScenario({
     "codecept.conf.js": 'exports.config = {\n  tests: "./*_test.js",\n  output: "./output",\n  helpers: { FileSystem: {} },\n  include: {},\n  name: "e2e",\n};\n',
     "sum_test.js": 'Feature("sum");\n\nScenario("add", ({ I }) => {\n  I.say("hello");\n});\n',
   },
+  demo: false,
   command: ["npx", "codeceptjs", "run"],
 });
 
@@ -188,6 +188,7 @@ const pythonScenario = ({ id, requirements, files, command, extraAssert }) =>
 
     inVenv("pip", ["install", "-q", "-r", "requirements.txt"]);
     inVenv(process.execPath, [cli, "init", "--yes", "--lang", "python"]);
+    inVenv(process.execPath, [cli, "demo", "--framework", id, "--lang", "python"]);
 
     const doctor = JSON.parse(inVenv(process.execPath, [cli, "doctor", "--json", "--lang", "python"]));
 
@@ -202,34 +203,28 @@ const pythonScenario = ({ id, requirements, files, command, extraAssert }) =>
 pythonScenario({
   id: "pytest",
   requirements: ["pytest"],
-  files: { "test_sum.py": "def test_sum():\n    assert 1 + 1 == 2\n" },
+  files: {},
   command: ["pytest", "--alluredir=allure-results"],
 });
 
 pythonScenario({
   id: "behave",
   requirements: ["behave"],
-  files: {
-    "features/sum.feature": "Feature: sum\n  Scenario: add\n    Given a number\n",
-    "features/steps/steps.py": "from behave import given\n\n\n@given('a number')\ndef step_impl(context):\n    pass\n",
-  },
+  files: {},
   command: ["behave", "-f", "allure_behave.formatter:AllureFormatter", "-o", "allure-results"],
 });
 
 pythonScenario({
   id: "robotframework",
   requirements: ["robotframework"],
-  files: { "sum.robot": "*** Test Cases ***\nAdd\n    Log    hello\n" },
-  command: ["robot", "--listener", "allure_robotframework:allure-results", "sum.robot"],
+  files: {},
+  command: ["robot", "--listener", "allure_robotframework:allure-results", "allure_demo.robot"],
 });
 
 pythonScenario({
   id: "pytest-bdd",
   requirements: ["pytest-bdd"],
-  files: {
-    "features/sum.feature": "Feature: sum\n  Scenario: add\n    Given a number\n",
-    "test_sum.py": 'from pytest_bdd import given, scenarios\n\nscenarios("features/sum.feature")\n\n\n@given("a number")\ndef _():\n    pass\n',
-  },
+  files: {},
   command: ["pytest", "--alluredir=allure-results"],
 });
 

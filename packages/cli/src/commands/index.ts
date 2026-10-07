@@ -15,3 +15,4 @@ export { KitConfigGetCommand, KitConfigListCommand, KitConfigSetCommand, KitConf
 export { KitGitlabInitCommand } from "./gitlabInit.js";
 export { KitCiInitCommand } from "./ciInit.js";
 export { KitMigrateCommand } from "./migrate.js";
+export { KitDemoCommand } from "./demo.js";
