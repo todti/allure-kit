@@ -14,6 +14,8 @@ import { getInstallCommand, getPythonInstallCommand, getPythonTestCommand, getTe
 interface CiPlan {
   python: boolean;
   java: boolean;
+  /** Whether the job needs Node.js on the machine (the Gradle plugin brings its own). */
+  node: boolean;
   installCommand: string;
   testCommand: string;
   /** Complete report command, including where it writes. */
@@ -33,7 +35,7 @@ interface CiProvider {
 
 const groovySingleQuoted = (command: string) => command.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 
-const CIRCLE_IMAGE = { js: "cimg/node:20.11", python: "cimg/python:3.12-node", java: "cimg/openjdk:17.0" };
+const CIRCLE_IMAGE = { js: "cimg/node:20.11", python: "cimg/python:3.12-node", java: "cimg/openjdk:17.0", javaNode: "cimg/openjdk:17.0-node" };
 
 /** Every provider follows the same shape: install, run tests without aborting, generate the report, keep it as an artifact, then fail if tests failed. */
 export const CI_PROVIDERS: Record<string, CiProvider> = {
@@ -46,7 +48,7 @@ export const CI_PROVIDERS: Record<string, CiProvider> = {
 jobs:
   allure-report:
     docker:
-      - image: ${plan.java ? CIRCLE_IMAGE.java : plan.python ? CIRCLE_IMAGE.python : CIRCLE_IMAGE.js}
+      - image: ${plan.java ? (plan.node ? CIRCLE_IMAGE.javaNode : CIRCLE_IMAGE.java) : plan.python ? CIRCLE_IMAGE.python : CIRCLE_IMAGE.js}
     steps:
       - checkout
       - run:
@@ -153,12 +155,12 @@ ${
 `
     : ""
 }${
-  plan.java
-    ? ""
-    : `  - task: NodeTool@0
+  plan.node
+    ? `  - task: NodeTool@0
     inputs:
       versionSpec: "20.x"
 `
+    : ""
 }  - script: ${plan.installCommand}
     displayName: Install dependencies
   - script: ${plan.testCommand} || echo "##vso[task.setvariable variable=TESTS_FAILED]1"
@@ -226,12 +228,6 @@ export class KitCiInitCommand extends Command {
     const packageManager = await ecosystem.detectPackageManager(workingDir);
     const java = ecosystem.id === "java";
 
-    if (java && packageManager !== "gradle") {
-      throw new UsageError(
-        "CI scaffolding for Java is only available for Gradle projects (the Allure Gradle plugin provides the report task). For Maven, run your tests, then `allure generate` on target/allure-results.",
-      );
-    }
-
     const python = ecosystem.id === "pip";
 
     if ((python || java) && provider.jsOnly) {
@@ -241,27 +237,44 @@ export class KitCiInitCommand extends Command {
     }
 
     const testCommand = typeof this.testCommand === "string" ? this.testCommand : undefined;
-    const plan: CiPlan = java
-      ? {
-          python: false,
-          java: true,
-          installCommand: "chmod +x ./gradlew",
-          testCommand: testCommand ?? "./gradlew test",
-          generateCommand: "./gradlew allureReport",
-          reportDir: "build/reports/allure-report/allureReport",
-        }
-      : {
-          python,
-          java: false,
-          installCommand: python ? getPythonInstallCommand(packageManager) : getInstallCommand(packageManager),
-          testCommand:
-            testCommand ??
-            (python
-              ? getPythonTestCommand(packageManager, (await ecosystem.detectFrameworks(workingDir))[0]?.framework.id)
-              : getTestCommand(packageManager)),
-          generateCommand: `${python ? "npx --yes allure generate" : "npx allure generate"} --output allure-report`,
-          reportDir: "allure-report",
-        };
+    let plan: CiPlan;
+
+    if (java && packageManager === "gradle") {
+      plan = {
+        python: false,
+        java: true,
+        node: false,
+        installCommand: "chmod +x ./gradlew",
+        testCommand: testCommand ?? "./gradlew test",
+        generateCommand: "./gradlew allureReport",
+        reportDir: "build/reports/allure-report/allureReport",
+      };
+    } else if (java) {
+      // Maven has no report task: the Node-based Allure CLI builds the report from target/allure-results.
+      plan = {
+        python: false,
+        java: true,
+        node: true,
+        installCommand: "mvn -B -DskipTests test-compile",
+        testCommand: testCommand ?? "mvn -B test",
+        generateCommand: "npx --yes allure generate target/allure-results --output allure-report",
+        reportDir: "allure-report",
+      };
+    } else {
+      plan = {
+        python,
+        java: false,
+        node: true,
+        installCommand: python ? getPythonInstallCommand(packageManager) : getInstallCommand(packageManager),
+        testCommand:
+          testCommand ??
+          (python
+            ? getPythonTestCommand(packageManager, (await ecosystem.detectFrameworks(workingDir))[0]?.framework.id)
+            : getTestCommand(packageManager)),
+        generateCommand: `${python ? "npx --yes allure generate" : "npx allure generate"} --output allure-report`,
+        reportDir: "allure-report",
+      };
+    }
 
     if (existsSync(target) && this.yes !== true) {
       logWarning(`${provider.file} already exists`);
