@@ -113,6 +113,14 @@ Creates a GitHub Actions workflow that generates an Allure report and publishes 
 allure-kit gh-pages init [--lang js|ts|python] [--yes] [--branch <name>] [--config <path>] [--test-command <cmd>] [--cwd <path>]
 ```
 
+### `ci init <provider>`
+
+```bash
+allure-kit ci init circleci|jenkins|azure [--lang js|ts|python] [--test-command <cmd>] [--yes] [--cwd <path>]
+```
+
+Creates `.circleci/config.yml`, a `Jenkinsfile` or `azure-pipelines.yml`. Every pipeline installs dependencies, runs the tests without aborting, builds the report with `allure generate`, keeps it as a build artifact and fails the job afterwards if the tests failed. Python projects get a Python+Node image/setup and the framework's own test command. GitHub and GitLab have their own commands (`gh-pages init`, `gitlab init`).
+
 ### `gitlab init`
 
 Creates a GitLab CI job (`.gitlab/allure-report.gitlab-ci.yml`, included from `.gitlab-ci.yml`) that runs your tests and calls `allure gitlab`: it builds the report, restores history from the previous run, and posts a summary comment on merge requests. Set a masked `GITLAB_TOKEN` CI/CD variable (api scope) to enable history restore and comments.
