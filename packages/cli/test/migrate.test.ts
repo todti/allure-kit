@@ -88,4 +88,22 @@ describe("kit/migrate", () => {
     expect(executeCommand).not.toHaveBeenCalled();
     expect(output()).toContain("Nothing to migrate");
   });
+
+  it("migrates allure-junit5 in a Maven project and respects --dry-run", async () => {
+    const pom = "<project><properties><allure.version>2.29.0</allure.version></properties><artifactId>allure-junit5</artifactId></project>";
+
+    await writeFile(join(dir, "pom.xml"), pom);
+    await run(true);
+
+    expect(await readFile(join(dir, "pom.xml"), "utf-8")).toBe(pom);
+    expect(output()).toContain("would change artifactId allure-junit5 → allure-jupiter");
+
+    await run(false);
+
+    const migrated = await readFile(join(dir, "pom.xml"), "utf-8");
+
+    expect(migrated).toContain("allure-jupiter");
+    expect(migrated).toContain("<allure.version>3.0.0</allure.version>");
+    expect(executeCommand).not.toHaveBeenCalled();
+  });
 });

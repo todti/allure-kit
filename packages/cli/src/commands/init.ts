@@ -272,11 +272,17 @@ export class KitInitCommand extends Command {
       logInfo(ecosystem.postInstallHint);
     }
 
+    const docsLinks: string[] = [];
+
     for (const id of selectedFrameworkIds) {
       const framework = registry.find((f) => f.id === id);
 
       if (!framework) {
         continue;
+      }
+
+      if (framework.docsUrl) {
+        docsLinks.push(`${framework.displayName}: ${framework.docsUrl}`);
       }
 
       const plannedWrites: { path: string; content: string }[] = [];
@@ -316,6 +322,14 @@ export class KitInitCommand extends Command {
         }
 
         logHint(`${framework.displayName}: ${framework.setupHint}`);
+      }
+    }
+
+    if (docsLinks.length > 0 && !dryRun) {
+      logInfo("Adapter options and examples:");
+
+      for (const link of docsLinks) {
+        logHint(link);
       }
     }
 

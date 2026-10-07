@@ -7,9 +7,13 @@ import {
   logSuccess,
   logWarning,
   readAllureConfig,
+  setMjsOption,
+  unsetMjsOption,
   writeAllureConfig,
 } from "@todti/allure-kit-core";
 import { Command, Option, UsageError } from "clipanion";
+
+import { editMjsConfig } from "../mjs-edit.js";
 
 /** Top-level allurerc settings that `config set` manages (dotted keys address nested objects). */
 export const CONFIG_KEYS = [
@@ -83,6 +87,20 @@ export class KitConfigSetCommand extends Command {
     assertKnownKey(this.key);
 
     const workingDir = this.cwd ?? processCwd();
+
+    if ((await findExistingConfig(workingDir))?.format === "mjs") {
+      const value = parseValue(this.value);
+
+      if (await editMjsConfig(workingDir, (source) => setMjsOption(source, this.key.split("."), value))) {
+        logSuccess(`Set ${this.key} = ${JSON.stringify(value)}`);
+      } else {
+        logWarning("Couldn't edit allurerc.mjs automatically (the config isn't a plain object literal, or a parent key isn't one).");
+        logHint(`Set ${this.key} to ${JSON.stringify(value)} by hand.`);
+      }
+
+      return;
+    }
+
     const loaded = await loadEditableConfig(workingDir);
 
     if (!loaded) {
@@ -187,6 +205,17 @@ export class KitConfigUnsetCommand extends Command {
     assertKnownKey(this.key);
 
     const workingDir = this.cwd ?? processCwd();
+
+    if ((await findExistingConfig(workingDir))?.format === "mjs") {
+      if (await editMjsConfig(workingDir, (source) => unsetMjsOption(source, this.key.split(".")))) {
+        logSuccess(`Removed ${this.key}`);
+      } else {
+        logWarning("Couldn't edit allurerc.mjs automatically (the config isn't a plain object literal).");
+      }
+
+      return;
+    }
+
     const loaded = await loadEditableConfig(workingDir);
 
     if (!loaded) {

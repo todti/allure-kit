@@ -213,4 +213,16 @@ describe("kit/doctor", () => {
 
     expect(output()).toContain("packages/web uses Playwright — run: allure-kit doctor --cwd packages/web");
   });
+
+  it("should flag an allure-action workflow without the permissions it needs", async () => {
+    await mkdir(join(tempDir, ".github", "workflows"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".github", "workflows", "report.yml"),
+      "name: r\non: pull_request\njobs:\n  r:\n    steps:\n      - uses: allure-framework/allure-action@v0\n        with:\n          github-token: ${{ secrets.GITHUB_TOKEN }}\n",
+    );
+
+    await run();
+
+    expect(output()).toContain("report.yml (job \"r\"): allure-action needs pull-requests: write and checks: write");
+  });
 });
