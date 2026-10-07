@@ -24,6 +24,7 @@ const COMMANDS = [
   },
   { name: "gh-pages init", description: "Create GitHub Pages workflow for publishing Allure report" },
   { name: "gitlab init", description: "Create a GitLab CI job that builds and publishes the Allure report" },
+  { name: "ci init <provider>", description: "Create a CI pipeline for CircleCI, Jenkins or Azure Pipelines" },
   { name: "config get|set|list|unset", description: "Read or change top-level allurerc options" },
   { name: "plugin add <name>", description: "Add a report plugin with interactive options" },
   { name: "plugin edit <name>", description: "Edit the options of a configured report plugin" },

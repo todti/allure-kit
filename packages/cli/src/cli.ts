@@ -5,6 +5,7 @@ import { argv } from "node:process";
 import { Builtins, Cli } from "clipanion";
 
 import {
+  KitCiInitCommand,
   KitConfigGetCommand,
   KitConfigListCommand,
   KitConfigSetCommand,
@@ -44,6 +45,7 @@ cli.register(KitPluginEditCommand);
 cli.register(KitPluginRemoveCommand);
 cli.register(KitPluginListCommand);
 cli.register(KitConfigSetCommand);
+cli.register(KitCiInitCommand);
 cli.register(KitConfigGetCommand);
 cli.register(KitConfigListCommand);
 cli.register(KitConfigUnsetCommand);
