@@ -272,3 +272,7 @@ For the reporting engine itself, adapters, and plugins, see:
 ## License
 
 [Apache-2.0](LICENSE)
+
+## Releasing
+
+See [RELEASING.md](RELEASING.md) (semver policy, tag-triggered publish with npm provenance) and [CHANGELOG.md](CHANGELOG.md).

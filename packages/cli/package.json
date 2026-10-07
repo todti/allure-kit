@@ -1,7 +1,7 @@
 {
   "name": "allure-kit",
   "version": "0.2.3",
-  "description": "Standalone CLI toolkit for bootstrapping and maintaining an Allure 3 setup in JavaScript/TypeScript and Python projects",
+  "description": "Standalone CLI toolkit for bootstrapping and maintaining an Allure 3 setup in JavaScript/TypeScript, Python and Java (Gradle/Maven) projects",
   "keywords": [
     "allure",
     "allure3",
@@ -14,7 +14,11 @@
     "scaffold",
     "setup",
     "bootstrap",
-    "gh-pages"
+    "gh-pages",
+    "gitlab",
+    "java",
+    "gradle",
+    "maven"
   ],
   "license": "Apache-2.0",
   "author": "Todti <hellotodt@gmail.com>",
