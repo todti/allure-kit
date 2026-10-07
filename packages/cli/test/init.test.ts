@@ -205,4 +205,19 @@ describe("kit/init", () => {
     expect(await readFile(join(tempDir, "build.gradle.kts"), "utf-8")).toContain('id("io.qameta.allure") version "4.3.0"');
     expect(await fileExists(join(tempDir, "allurerc.json"))).toBe(false);
   });
+
+  it("should point at the official configuration page of each selected framework", async () => {
+    await writeFile(join(tempDir, "package.json"), JSON.stringify({ devDependencies: { "@playwright/test": "^1.50.0" } }));
+    await writeFile(join(tempDir, "playwright.config.ts"), `export default defineConfig({\n  testDir: "./tests",\n});\n`);
+
+    const command = new KitInitCommand();
+    command.cwd = tempDir;
+    command.framework = "playwright";
+
+    await command.execute();
+
+    const output = logMock.mock.calls.map((call) => call.join(" ")).join("\n");
+
+    expect(output).toContain("Playwright: https://allurereport.org/docs/playwright-configuration/");
+  });
 });

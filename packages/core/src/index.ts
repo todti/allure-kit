@@ -6,3 +6,5 @@ export * from "./ui.js";
 export * from "./registry.js";
 export * from "./templates/allurerc.js";
 export * from "./diff.js";
+export * from "./js-scan.js";
+export * from "./mjs-config.js";

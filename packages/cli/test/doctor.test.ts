@@ -184,6 +184,14 @@ describe("kit/doctor", () => {
       expect(output()).toContain("Found 1 issue");
     });
 
+    it("should flag allure-pytest and allure-pytest-bdd declared together", async () => {
+      await setUpPython("pytest-bdd==8.1.0\nallure-pytest==2.15.0\nallure-pytest-bdd==2.15.0\n");
+
+      await run();
+
+      expect(output()).toContain("allure-pytest and allure-pytest-bdd are both declared");
+    });
+
     it("should warn about a declared adapter whose framework is gone", async () => {
       await setUpPython("allure-behave==2.13.5\nrequests\n");
 
@@ -231,5 +239,17 @@ describe("kit/doctor", () => {
       expect(output()).toContain("JUnit 5 detected but io.qameta.allure is not in your dependencies");
       expect(output()).toContain("Run: allure-kit init");
     });
+  });
+
+  it("should flag an allure-action workflow without the permissions it needs", async () => {
+    await mkdir(join(tempDir, ".github", "workflows"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".github", "workflows", "report.yml"),
+      "name: r\non: pull_request\njobs:\n  r:\n    steps:\n      - uses: allure-framework/allure-action@v0\n        with:\n          github-token: ${{ secrets.GITHUB_TOKEN }}\n",
+    );
+
+    await run();
+
+    expect(output()).toContain("report.yml (job \"r\"): allure-action needs pull-requests: write and checks: write");
   });
 });

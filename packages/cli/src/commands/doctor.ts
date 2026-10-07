@@ -24,6 +24,7 @@ import {
   detectWorkspaceFrameworks,
   FRAMEWORK_REGISTRY,
   npmAdapter,
+  OUTDATED_WIRING,
 } from "@todti/allure-kit-npm";
 import { Command, Option } from "clipanion";
 
@@ -32,11 +33,14 @@ import { resolveEcosystem } from "../ecosystems.js";
 import {
   checkAdapterCompat,
   checkAllureCliGeneration,
+  checkAllureActionPermissions,
   checkAllureJsVersionAlignment,
   checkFrameworkCaveats,
+  checkPlaywrightFullName,
   checkPluginImports,
   checkConfigCombinations,
   checkTestPlanEnv,
+  readGithubWorkflows,
   type DoctorFinding,
 } from "../doctor-checks.js";
 
@@ -105,6 +109,20 @@ const createReporter = (json: boolean) => {
 
 type Reporter = ReturnType<typeof createReporter>;
 
+const readPlaywrightConfig = async (workingDir: string): Promise<string | null> => {
+  const playwright = FRAMEWORK_REGISTRY.find((framework) => framework.id === "playwright");
+
+  for (const pattern of playwright?.configFilePatterns ?? []) {
+    try {
+      return await readFile(resolve(workingDir, pattern), "utf-8");
+    } catch {
+      // try the next candidate
+    }
+  }
+
+  return null;
+};
+
 const checkNpmEcosystem = async (workingDir: string, report: Reporter) => {
   let issues = 0;
 
@@ -144,6 +162,12 @@ const checkNpmEcosystem = async (workingDir: string, report: Reporter) => {
         } else if (wiring === "not-wired") {
           report.add("error", `${framework.displayName} adapter is installed but the reporter isn't wired into its config`);
           report.hint(framework.setupHint);
+          issues++;
+        } else if (wiring === "outdated-name") {
+          const { bad, use } = OUTDATED_WIRING[framework.id];
+
+          report.add("error", `${framework.displayName} config uses "${bad}", which doesn't exist — no results are written`);
+          report.hint(`Older allure-kit versions wrote this name. Replace it with "${use}" in the ${framework.displayName} config.`);
           issues++;
         } else if (wiring === "no-config-file") {
           report.add("warning", `${framework.displayName} config file not found — can't verify the reporter is wired`);
@@ -360,6 +384,11 @@ export class KitDoctorCommand extends Command {
       ...(await checkAllureJsVersionAlignment(workingDir)),
       ...(existingConfig ? checkConfigCombinations(await readFile(existingConfig.path, "utf-8")) : []),
       ...(parsedConfig ? checkPluginImports(parsedConfig, workingDir) : []),
+      ...checkAllureActionPermissions(await readGithubWorkflows(workingDir)),
+      ...checkPlaywrightFullName(
+        (await readPlaywrightConfig(workingDir)) ?? "",
+        existingConfig ? await readFile(existingConfig.path, "utf-8") : null,
+      ),
       ...(await checkTestPlanEnv(process.env, workingDir)),
       ...checkFrameworkCaveats(detectedFrameworks.map(({ framework }) => framework.id)),
     ];

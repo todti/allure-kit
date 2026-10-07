@@ -49,9 +49,16 @@ describe("kit/detect-python-frameworks", () => {
       const detected = await detectPythonFrameworks(tempDir);
       const ids = detected.map((d) => d.framework.id);
 
-      expect(ids).toContain("pytest");
+      // allure-pytest-bdd replaces allure-pytest (same --alluredir option), so pytest is dropped next to pytest-bdd.
+      expect(ids).not.toContain("pytest");
       expect(ids).toContain("pytest-bdd");
       expect(ids).toContain("robotframework");
+    });
+
+    it("should keep pytest when pytest-bdd is absent", async () => {
+      await writeFile(join(tempDir, "requirements.txt"), "pytest==8.0.0\nrobotframework==7.0\n");
+
+      expect((await detectPythonFrameworks(tempDir)).map((d) => d.framework.id)).toEqual(["pytest", "robotframework"]);
     });
 
     it("should ignore comments and blank lines", async () => {

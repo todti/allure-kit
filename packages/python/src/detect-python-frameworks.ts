@@ -241,5 +241,11 @@ export const detectPythonFrameworks = async (cwd: string): Promise<DetectedFrame
   const detectedFromFiles = await detectPythonFrameworksByFiles(cwd);
   const fileOnlyDetections = detectedFromFiles.filter((d) => !depIds.has(d.framework.id));
 
-  return [...detectedFromDeps, ...fileOnlyDetections];
+  const detected = [...detectedFromDeps, ...fileOnlyDetections];
+
+  // allure-pytest-bdd is a complete pytest plugin of its own and registers the same --alluredir option as
+  // allure-pytest, so installing both makes pytest fail at startup: a Pytest-BDD project gets only the BDD adapter.
+  return detected.some((entry) => entry.framework.id === "pytest-bdd")
+    ? detected.filter((entry) => entry.framework.id !== "pytest")
+    : detected;
 };
