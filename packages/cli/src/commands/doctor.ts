@@ -33,6 +33,7 @@ import {
   checkAllureCliGeneration,
   checkAllureJsVersionAlignment,
   checkFrameworkCaveats,
+  checkPluginImports,
   checkConfigCombinations,
   checkTestPlanEnv,
   type DoctorFinding,
@@ -322,11 +323,14 @@ export class KitDoctorCommand extends Command {
 
     report.step("Checking compatibility...");
 
+    const parsedConfig = existingConfig ? await readAllureConfig(workingDir) : null;
+
     const compatFindings = [
       ...(await checkAdapterCompat(workingDir)),
       ...(await checkAllureCliGeneration(workingDir)),
       ...(await checkAllureJsVersionAlignment(workingDir)),
       ...(existingConfig ? checkConfigCombinations(await readFile(existingConfig.path, "utf-8")) : []),
+      ...(parsedConfig ? checkPluginImports(parsedConfig, workingDir) : []),
       ...(await checkTestPlanEnv(process.env, workingDir)),
       ...checkFrameworkCaveats(detectedFrameworks.map(({ framework }) => framework.id)),
     ];
