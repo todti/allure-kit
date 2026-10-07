@@ -10,6 +10,13 @@ on:
 jobs:
   e2e:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # "pinned" uses the version ranges in scripts/e2e.mjs; "latest" installs the newest release of every framework.
+        versions: [pinned, latest]
+    env:
+      E2E_LATEST: ${{ matrix.versions == 'latest' && '1' || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
