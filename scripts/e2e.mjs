@@ -277,6 +277,28 @@ scenario("newman: init installs the reporter and `-r allure` produces allure-res
   assert(existsSync(join(dir, "allure-results")), "allure-results were written");
 });
 
+// Where the HTML report lands depends on the plugins: gh-pages init and doctor rely on this, so keep checking it.
+scenario("report layout: csv next to awesome moves the HTML report into a subfolder", (dir) => {
+  write(dir, "package.json", JSON.stringify({ name: "e2e-layout", private: true, type: "module", devDependencies: { vitest: version("^3.0.0") } }));
+  write(dir, "vitest.config.ts", 'import { defineConfig } from "vitest/config";\n\nexport default defineConfig({\n  test: {},\n});\n');
+  run(dir, "npm", ["install", "--no-audit", "--no-fund"]);
+  kit(dir, "init", "--yes");
+  kit(dir, "demo", "--framework", "vitest");
+  run(dir, "npx", ["vitest", "run"]);
+
+  run(dir, "npx", ["allure", "generate"]);
+  assert(existsSync(join(dir, "allure-report", "index.html")), "a single HTML plugin writes index.html to the report root");
+
+  kit(dir, "plugin", "add", "csv", "--skip-options");
+  rmSync(join(dir, "allure-report"), { recursive: true, force: true });
+  run(dir, "npx", ["allure", "generate"]);
+  assert(!existsSync(join(dir, "allure-report", "index.html")), "with csv the root has no index.html");
+  assert(existsSync(join(dir, "allure-report", "awesome", "index.html")), "the report moved to allure-report/awesome/");
+
+  kit(dir, "gh-pages", "init", "--yes");
+  assert(readFileSync(join(dir, ".github/workflows/allure-gh-pages.yml"), "utf-8").includes("publish_dir: ./allure-report/awesome"), "gh-pages init publishes the subfolder");
+});
+
 // Cypress needs a ~200 MB binary we don't download here, so this checks what `init` can break without running a browser:
 // the patched config must still load as CommonJS and its setupNodeEvents must register the Allure hooks.
 scenario("cypress: init wires a CommonJS config that still loads", (dir) => {

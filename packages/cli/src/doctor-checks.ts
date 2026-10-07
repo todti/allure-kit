@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { isAbsolute, resolve } from "node:path";
 
+import { resolveReportSubdir } from "@todti/allure-kit-core";
 import { parse as parseYaml } from "yaml";
 
 export interface DoctorFinding {
@@ -402,4 +403,18 @@ export const checkTestOpsPlugin = (configSource: string | null, env: NodeJS.Proc
           hint: "Set CI=true or ALLURE_TESTOPS_ENABLED=true to try it locally (endpoint, token and project can come from ALLURE_ENDPOINT, ALLURE_TOKEN, ALLURE_PROJECT_ID)",
         },
       ];
+};
+
+export const checkReportLayout = (pluginIds: string[], output: string | undefined): DoctorFinding[] => {
+  const subdir = resolveReportSubdir(pluginIds);
+
+  return subdir
+    ? [
+        {
+          level: "info",
+          message: `The HTML report is written to ${output ?? "./allure-report"}/${subdir}/, not to the output root (csv is enabled next to ${subdir})`,
+          hint: `Serve or publish that folder; the root has no index.html (gh-pages init does this for you)`,
+        },
+      ]
+    : [];
 };

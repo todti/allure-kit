@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { findReportPluginById, getDefaultReportPlugins, REPORT_PLUGIN_REGISTRY } from "../src/registry.js";
+import { findReportPluginById, getDefaultReportPlugins, REPORT_PLUGIN_REGISTRY, resolveReportSubdir } from "../src/registry.js";
 
 describe("kit/registry", () => {
   describe("REPORT_PLUGIN_REGISTRY", () => {
@@ -69,5 +69,14 @@ describe("kit/registry", () => {
       launchName: "ALLURE_LAUNCH_NAME",
     });
     expect(testops.note).toContain("ALLURE_TESTOPS_ENABLED");
+  });
+
+  it("knows where the HTML report lands for plugin combinations (verified with allure 3.20.1)", () => {
+    expect(resolveReportSubdir(["awesome"])).toBe("");
+    expect(resolveReportSubdir(["awesome", "log"])).toBe("");
+    expect(resolveReportSubdir(["awesome", "csv"])).toBe("awesome");
+    expect(resolveReportSubdir(["csv", "classic"])).toBe("classic");
+    expect(resolveReportSubdir(["awesome", "classic", "csv"])).toBe("");
+    expect(resolveReportSubdir(["csv"])).toBe("");
   });
 });

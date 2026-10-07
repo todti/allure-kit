@@ -14,6 +14,7 @@ If you ran `allure-kit init` before this release, run `allure-kit doctor`: it no
 - **Pytest-BDD:** `allure-pytest` and `allure-pytest-bdd` were both installed; both register `--alluredir`, so pytest crashed at startup. Only the BDD adapter is installed now, and `doctor` flags projects that have both.
 - **Robot Framework:** the listener is `allure_robotframework:allure-results` (the documented `ListenerV3` does not exist in allure-robotframework 2.x); fixed in the hint and in generated CI commands.
 - **Behave** was reported for Pytest-BDD projects (their `features/*.feature` files look the same), so `init` installed an unneeded `allure-behave`; Behave now counts there only when `behave` is declared.
+- Adding the `csv` plugin next to a single HTML report plugin moves the HTML report to `<output>/<plugin>/` and leaves the output root without an `index.html`, so a `gh-pages init` workflow that published `./allure-report` served a 404. `gh-pages init` now publishes the subfolder, `plugin add csv` explains the layout and `doctor` tells where the report went.
 - `--help` listed neither `gitlab init` nor `config`.
 
 ### Added

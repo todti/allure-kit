@@ -126,4 +126,24 @@ describe("kit/gh-pages-init", () => {
       await rm(tempDir, { recursive: true, force: true });
     }
   });
+
+  it("publishes the report subfolder when csv moved it there", async () => {
+    vi.mocked(detectPackageManager).mockResolvedValue("npm");
+
+    const tempDir = await mkdtemp(join(tmpdir(), "allure-kit-gh-pages-"));
+
+    try {
+      await writeFile(join(tempDir, "allurerc.json"), JSON.stringify({ name: "R", plugins: { awesome: { options: {} }, csv: { options: {} } } }));
+
+      const command = new KitGhPagesInitCommand();
+      command.cwd = tempDir;
+      command.yes = true;
+
+      await command.execute();
+
+      expect(await readFile(join(tempDir, ".github", "workflows", "allure-gh-pages.yml"), "utf-8")).toContain("publish_dir: ./allure-report/awesome");
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
 });
