@@ -38,6 +38,7 @@ import {
   checkFrameworkCaveats,
   checkPlaywrightFullName,
   checkPluginImports,
+  checkTestOpsPlugin,
   checkConfigCombinations,
   checkTestPlanEnv,
   readGithubWorkflows,
@@ -389,6 +390,7 @@ export class KitDoctorCommand extends Command {
         (await readPlaywrightConfig(workingDir)) ?? "",
         existingConfig ? await readFile(existingConfig.path, "utf-8") : null,
       ),
+      ...checkTestOpsPlugin(existingConfig ? await readFile(existingConfig.path, "utf-8") : null, process.env),
       ...(await checkTestPlanEnv(process.env, workingDir)),
       ...checkFrameworkCaveats(detectedFrameworks.map(({ framework }) => framework.id)),
     ];

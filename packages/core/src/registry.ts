@@ -13,6 +13,8 @@ export interface ReportPluginDescriptor {
   description: string;
   isDefault: boolean;
   options?: PluginOptionDescriptor[];
+  /** Behaviour worth knowing right after adding the plugin (shown by `plugin add`). */
+  note?: string;
 }
 
 export const REPORT_PLUGIN_REGISTRY: ReportPluginDescriptor[] = [
@@ -158,11 +160,12 @@ export const REPORT_PLUGIN_REGISTRY: ReportPluginDescriptor[] = [
     description: "Allure TestOps integration",
     isDefault: false,
     options: [
-      { name: "endpoint", description: "TestOps API endpoint URL", type: "text" },
-      { name: "accessToken", description: "API access token", type: "text" },
-      { name: "projectId", description: "Project ID in TestOps", type: "text" },
-      { name: "launchName", description: "Launch name", type: "text" },
+      { name: "endpoint", description: "TestOps API endpoint URL", type: "text", envVar: "ALLURE_ENDPOINT" },
+      { name: "accessToken", description: "API access token", type: "text", envVar: "ALLURE_TOKEN" },
+      { name: "projectId", description: "Project ID in TestOps", type: "text", envVar: "ALLURE_PROJECT_ID" },
+      { name: "launchName", description: "Launch name", type: "text", envVar: "ALLURE_LAUNCH_NAME" },
     ],
+    note: "The TestOps plugin only uploads in CI (CI=true) or when ALLURE_TESTOPS_ENABLED=true / ALLURE_JOB_RUN_ID is set; locally it stays disabled. Options given in allurerc win over the environment variables.",
   },
   {
     id: "allure2",

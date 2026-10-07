@@ -384,3 +384,22 @@ export const checkPlaywrightFullName = (playwrightConfigSource: string, allureCo
     },
   ];
 };
+
+/** The TestOps plugin is silent outside CI (allure-plugin-testops: "plugin is disabled - no CI environment detected"). */
+export const checkTestOpsPlugin = (configSource: string | null, env: NodeJS.ProcessEnv): DoctorFinding[] => {
+  if (!configSource || !/\btestops\b/.test(configSource)) {
+    return [];
+  }
+
+  const active = ["CI", "ALLURE_TESTOPS_ENABLED"].some((name) => /^(1|true)$/i.test(env[name] ?? "")) || Boolean(env.ALLURE_JOB_RUN_ID);
+
+  return active
+    ? []
+    : [
+        {
+          level: "info",
+          message: "The testops plugin is configured but stays disabled here: it only uploads in CI",
+          hint: "Set CI=true or ALLURE_TESTOPS_ENABLED=true to try it locally (endpoint, token and project can come from ALLURE_ENDPOINT, ALLURE_TOKEN, ALLURE_PROJECT_ID)",
+        },
+      ];
+};
