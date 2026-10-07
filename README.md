@@ -101,6 +101,8 @@ allure-kit migrate [--dry-run] [--cwd <path>]
 
 For JS/TS projects still on Allure 2: replaces `allure-commandline` with `allure`, rewrites `package.json` scripts (`allure serve <dir>` → `allure generate <dir> --open`; `--clean` is dropped because Allure 3's `generate` doesn't accept it), and creates an `allurerc.json` if there is none. `-c` is only flagged for manual review — it meant "clean" in Allure 2 but is `--config` in Allure 3. Use `--dry-run` to preview.
 
+In a Maven or Gradle project (no `package.json`) it migrates `allure-junit5` / `allure-junit5-assert` to `allure-jupiter` / `allure-jupiter-assert` (Allure Java 3.0 no longer publishes the old artifacts) and bumps a shared `<allure.version>` property below 3 to 3.0.0. Versions pinned on a dependency itself are only reported, and Allure Java 3 needs Java 17+.
+
 ### `doctor`
 
 In a monorepo, when the root has no test framework, `init` and `doctor` look into npm/yarn/pnpm workspaces and tell you which packages to run them in (`--cwd packages/web`).
