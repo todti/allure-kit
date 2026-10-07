@@ -158,6 +158,60 @@ frameworkScenario({
   command: ["npx", "codeceptjs", "run"],
 });
 
+// Python: a throwaway virtualenv so `pip install` (run by `init`) never touches the machine's Python.
+const pythonScenario = ({ id, requirements, files, command, extraAssert }) =>
+  scenario(`${id}: init declares the adapter and the framework command produces allure-results`, (dir) => {
+    const bin = join(dir, ".venv", process.platform === "win32" ? "Scripts" : "bin");
+
+    write(dir, "requirements.txt", `${requirements.join("\n")}\n`);
+
+    for (const [file, content] of Object.entries(files)) {
+      write(dir, file, content);
+    }
+
+    run(dir, "python3", ["-m", "venv", ".venv"]);
+
+    const env = { ...process.env, VIRTUAL_ENV: join(dir, ".venv"), PATH: `${bin}${process.platform === "win32" ? ";" : ":"}${process.env.PATH}` };
+    const inVenv = (cmd, args) => {
+      const result = spawnSync(cmd, args, { cwd: dir, env, encoding: "utf-8", timeout: 10 * 60 * 1000 });
+
+      if (result.status !== 0) {
+        throw new Error(`${cmd} ${args.join(" ")} exited with ${result.status}\n${result.stdout}${result.stderr}`);
+      }
+
+      return `${result.stdout}${result.stderr}`;
+    };
+
+    inVenv("pip", ["install", "-q", "-r", "requirements.txt"]);
+    inVenv(process.execPath, [cli, "init", "--yes", "--lang", "python"]);
+
+    const doctor = JSON.parse(inVenv(process.execPath, [cli, "doctor", "--json", "--lang", "python"]));
+
+    assert(doctor.ok === true, `doctor reports no issues (got ${JSON.stringify(doctor.checks.filter((c) => c.level === "error"))})`);
+    assert(readFileSync(join(dir, "requirements.txt"), "utf-8").includes(`allure-${id}`), "the adapter was added to requirements.txt");
+
+    inVenv(command[0], command.slice(1));
+    assert(existsSync(join(dir, "allure-results")), "allure-results were written");
+    extraAssert?.(dir);
+  });
+
+pythonScenario({
+  id: "pytest",
+  requirements: ["pytest"],
+  files: { "test_sum.py": "def test_sum():\n    assert 1 + 1 == 2\n" },
+  command: ["pytest", "--alluredir=allure-results"],
+});
+
+pythonScenario({
+  id: "behave",
+  requirements: ["behave"],
+  files: {
+    "features/sum.feature": "Feature: sum\n  Scenario: add\n    Given a number\n",
+    "features/steps/steps.py": "from behave import given\n\n\n@given('a number')\ndef step_impl(context):\n    pass\n",
+  },
+  command: ["behave", "-f", "allure_behave.formatter:AllureFormatter", "-o", "allure-results"],
+});
+
 scenario("migrate: Allure 2 project to Allure 3", (dir) => {
   write(
     dir,
