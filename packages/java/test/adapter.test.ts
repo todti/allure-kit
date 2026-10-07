@@ -108,4 +108,40 @@ describe("java/adapter", () => {
     expect(await javaAdapter.diagnose!(dir)).toEqual([]);
     expect(await readFile(join(dir, "build.gradle.kts"), "utf-8")).toContain("io.qameta.allure");
   });
+
+  describe("maven diagnose", () => {
+    const pom = (body: string) => `<project><dependencies>${body}</dependencies></project>`;
+    const allureJupiter = "<dependency><groupId>io.qameta.allure</groupId><artifactId>allure-jupiter</artifactId></dependency>";
+
+    it("only informs when the pom doesn't use Allure yet", async () => {
+      await put("pom.xml", pom(""));
+
+      expect((await javaAdapter.diagnose!(dir)).map((f) => f.level)).toEqual(["info"]);
+    });
+
+    it("errors on a missing AspectJ agent and warns about allure.properties", async () => {
+      await put("pom.xml", pom(allureJupiter));
+
+      const findings = await javaAdapter.diagnose!(dir);
+
+      expect(findings.map((f) => f.level)).toEqual(["error", "warning"]);
+      expect(findings[0].message).toContain("AspectJ agent");
+    });
+
+    it("warns about the removed allure-junit5 artifact", async () => {
+      await put("pom.xml", pom("<dependency><groupId>io.qameta.allure</groupId><artifactId>allure-junit5</artifactId></dependency>"));
+
+      expect((await javaAdapter.diagnose!(dir)).some((f) => f.message.includes("allure-junit5"))).toBe(true);
+    });
+
+    it("is quiet for a complete setup", async () => {
+      await put(
+        "pom.xml",
+        `<project>${allureJupiter}<dependency><artifactId>aspectjweaver</artifactId></dependency><argLine>-javaagent:aspectjweaver.jar</argLine></project>`,
+      );
+      await put("src/test/resources/allure.properties", "allure.results.directory=target/allure-results\n");
+
+      expect(await javaAdapter.diagnose!(dir)).toEqual([]);
+    });
+  });
 });

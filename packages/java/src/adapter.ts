@@ -107,9 +107,67 @@ const atLeast = (version: string, minimum: [number, number]) => {
   return major > minimum[0] || (major === minimum[0] && minor >= minimum[1]);
 };
 
-const diagnose = async (cwd: string): Promise<EcosystemFinding[]> => {
-  if ((await detectBuildTool(cwd)) !== "gradle") {
+/** Maven has no autoconfiguring plugin, so each moving part is checked separately (https://allurereport.org/docs/junit5/). */
+const diagnoseMaven = async (cwd: string): Promise<EcosystemFinding[]> => {
+  let pom: string;
+
+  try {
+    pom = await readFile(resolve(cwd, "pom.xml"), "utf-8");
+  } catch {
     return [];
+  }
+
+  const usesAllure = /io\.qameta\.allure/.test(pom);
+  const findings: EcosystemFinding[] = [];
+
+  if (!usesAllure) {
+    return [
+      {
+        level: "info",
+        message: "pom.xml doesn't use Allure yet",
+        hint: "Add allure-bom, allure-jupiter (test scope), the AspectJ agent in surefire's argLine and allure.properties — https://allurereport.org/docs/junit5/",
+      },
+    ];
+  }
+
+  if (/<artifactId>allure-junit5(-assert)?<\/artifactId>/.test(pom)) {
+    findings.push({
+      level: "warning",
+      message: "allure-junit5 is not published by Allure Java 3.0 and later",
+      hint: "Switch to io.qameta.allure:allure-jupiter (and allure-jupiter-assert) — works with JUnit 5 and 6, needs Java 17+",
+    });
+  }
+
+  if (!/aspectjweaver/.test(pom) || !/-javaagent/.test(pom)) {
+    findings.push({
+      level: "error",
+      message: "The AspectJ agent isn't configured for surefire, so @Step and @Attachment won't be recorded",
+      hint: 'Add org.aspectj:aspectjweaver and set maven-surefire-plugin\'s argLine to -javaagent:"${settings.localRepository}/org/aspectj/aspectjweaver/${aspectj.version}/aspectjweaver-${aspectj.version}.jar"',
+    });
+  }
+
+  let properties = "";
+
+  try {
+    properties = await readFile(resolve(cwd, "src/test/resources/allure.properties"), "utf-8");
+  } catch {
+    // reported below
+  }
+
+  if (!/allure\.results\.directory\s*=/.test(properties)) {
+    findings.push({
+      level: "warning",
+      message: "src/test/resources/allure.properties doesn't set allure.results.directory",
+      hint: "Add allure.results.directory=target/allure-results so results land where `allure generate` is pointed",
+    });
+  }
+
+  return findings;
+};
+
+const diagnose = async (cwd: string): Promise<EcosystemFinding[]> => {
+  if ((await detectBuildTool(cwd)) === "maven") {
+    return diagnoseMaven(cwd);
   }
 
   const findings: EcosystemFinding[] = [];
