@@ -33,11 +33,14 @@ import { resolveEcosystem } from "../ecosystems.js";
 import {
   checkAdapterCompat,
   checkAllureCliGeneration,
+  checkAllureActionPermissions,
   checkAllureJsVersionAlignment,
   checkFrameworkCaveats,
+  checkPlaywrightFullName,
   checkPluginImports,
   checkConfigCombinations,
   checkTestPlanEnv,
+  readGithubWorkflows,
   type DoctorFinding,
 } from "../doctor-checks.js";
 
@@ -105,6 +108,20 @@ const createReporter = (json: boolean) => {
 };
 
 type Reporter = ReturnType<typeof createReporter>;
+
+const readPlaywrightConfig = async (workingDir: string): Promise<string | null> => {
+  const playwright = FRAMEWORK_REGISTRY.find((framework) => framework.id === "playwright");
+
+  for (const pattern of playwright?.configFilePatterns ?? []) {
+    try {
+      return await readFile(resolve(workingDir, pattern), "utf-8");
+    } catch {
+      // try the next candidate
+    }
+  }
+
+  return null;
+};
 
 const checkNpmEcosystem = async (workingDir: string, report: Reporter) => {
   let issues = 0;
@@ -349,6 +366,11 @@ export class KitDoctorCommand extends Command {
       ...(await checkAllureJsVersionAlignment(workingDir)),
       ...(existingConfig ? checkConfigCombinations(await readFile(existingConfig.path, "utf-8")) : []),
       ...(parsedConfig ? checkPluginImports(parsedConfig, workingDir) : []),
+      ...checkAllureActionPermissions(await readGithubWorkflows(workingDir)),
+      ...checkPlaywrightFullName(
+        (await readPlaywrightConfig(workingDir)) ?? "",
+        existingConfig ? await readFile(existingConfig.path, "utf-8") : null,
+      ),
       ...(await checkTestPlanEnv(process.env, workingDir)),
       ...checkFrameworkCaveats(detectedFrameworks.map(({ framework }) => framework.id)),
     ];
