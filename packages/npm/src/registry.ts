@@ -6,6 +6,7 @@ export const FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
     displayName: "Vitest",
     packageName: "vitest",
     adapterPackage: "allure-vitest",
+    docsUrl: "https://allurereport.org/docs/vitest-configuration/",
     setupHint: 'Add "allure-vitest/reporter" to reporters and "allure-vitest/setup" to setupFiles in vitest.config.ts',
     configFilePatterns: ["vitest.config.ts", "vitest.config.js", "vitest.config.mts", "vitest.config.mjs"],
     // *.test.ts / *.spec.ts aren't distinctive to Vitest — Jest and Playwright use the same
@@ -17,6 +18,7 @@ export const FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
     displayName: "Playwright",
     packageName: "@playwright/test",
     adapterPackage: "allure-playwright",
+    docsUrl: "https://allurereport.org/docs/playwright-configuration/",
     setupHint: 'Add ["allure-playwright"] to reporter in playwright.config.ts',
     configFilePatterns: [
       "playwright.config.ts",
@@ -32,6 +34,7 @@ export const FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
     displayName: "Jest",
     packageName: "jest",
     adapterPackage: "allure-jest",
+    docsUrl: "https://allurereport.org/docs/jest-configuration/",
     setupHint: 'Set testEnvironment to "allure-jest/environment" in jest.config.js',
     configFilePatterns: ["jest.config.ts", "jest.config.js", "jest.config.mjs", "jest.config.cjs", "jest.config.json"],
     // Same overlap problem — *.test.ts isn't Jest-specific.
@@ -42,6 +45,7 @@ export const FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
     displayName: "Mocha",
     packageName: "mocha",
     adapterPackage: "allure-mocha",
+    docsUrl: "https://allurereport.org/docs/mocha-configuration/",
     setupHint: 'Add "--reporter allure-mocha/reporter" to your mocha command or .mocharc file',
     configFilePatterns: [
       ".mocharc.yml",
@@ -60,6 +64,7 @@ export const FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
     displayName: "Cypress",
     packageName: "cypress",
     adapterPackage: "allure-cypress",
+    docsUrl: "https://allurereport.org/docs/cypress-configuration/",
     setupHint: "Import allure-cypress in cypress/support/e2e.ts and add the plugin to cypress.config.ts",
     configFilePatterns: ["cypress.config.ts", "cypress.config.js", "cypress.config.mts", "cypress.config.mjs"],
     testFilePatterns: ["cypress/e2e/**/*.cy.ts", "cypress/e2e/**/*.cy.js"],
@@ -69,6 +74,7 @@ export const FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
     displayName: "Cucumber.js",
     packageName: "@cucumber/cucumber",
     adapterPackage: "allure-cucumberjs",
+    docsUrl: "https://allurereport.org/docs/cucumberjs-configuration/",
     setupHint: 'Add "--format allure-cucumberjs/reporter" to your cucumber-js command',
     configFilePatterns: ["cucumber.js", "cucumber.cjs", "cucumber.mjs", "cucumber.yml", "cucumber.yaml"],
     testFilePatterns: ["**/*.feature"],
@@ -78,6 +84,7 @@ export const FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
     displayName: "Jasmine",
     packageName: "jasmine",
     adapterPackage: "allure-jasmine",
+    docsUrl: "https://allurereport.org/docs/jasmine-configuration/",
     setupHint: "Add AllureJasmineReporter to jasmine helpers in your spec/support/jasmine.json",
     configFilePatterns: ["spec/support/jasmine.json"],
     // spec/**/*.spec.js isn't Jasmine-specific either — a spec/ dir with .spec files is common
@@ -89,6 +96,7 @@ export const FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
     displayName: "CodeceptJS",
     packageName: "codeceptjs",
     adapterPackage: "allure-codeceptjs",
+    docsUrl: "https://allurereport.org/docs/codeceptjs-configuration/",
     setupHint: 'Add "allure-codeceptjs" to plugins in codecept.conf.js',
     configFilePatterns: ["codecept.conf.ts", "codecept.conf.js", "codecept.conf.mjs", "codecept.conf.cjs"],
     testFilePatterns: ["**/*_test.js", "**/*_test.ts"],
@@ -98,6 +106,7 @@ export const FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
     displayName: "Newman (Postman)",
     packageName: "newman",
     adapterPackage: "newman-reporter-allure",
+    docsUrl: "https://allurereport.org/docs/newman-configuration/",
     setupHint: 'Run newman with "-r allure" flag, e.g. newman run collection.json -r allure',
     configFilePatterns: [],
     testFilePatterns: ["**/*.postman_collection.json"],
@@ -116,6 +125,7 @@ export const FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
       "@wdio/jasmine-framework",
     ],
     adapterPackage: "@wdio/allure-reporter",
+    docsUrl: "https://allurereport.org/docs/webdriverio-configuration/",
     setupHint:
       'Install "@wdio/allure-reporter" and add it to reporters in wdio.conf.ts (works for WDIO+Cucumber too), e.g. reporters: [["allure", { outputDir: "allure-results" }]]',
     configFilePatterns: ["wdio.conf.ts", "wdio.conf.js", "wdio.conf.mts", "wdio.conf.mjs", "wdio.conf.cjs"],

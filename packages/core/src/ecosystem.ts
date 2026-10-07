@@ -12,6 +12,8 @@ export interface FrameworkDescriptor {
    */
   detectPackageNames?: string[];
   adapterPackage: string;
+  /** Official Allure page for configuring this framework's adapter, shown by `init`. */
+  docsUrl?: string;
   setupHint: string;
   configFilePatterns: string[];
   testFilePatterns: string[];

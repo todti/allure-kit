@@ -318,3 +318,26 @@ export const readGithubWorkflows = async (cwd: string): Promise<{ file: string; 
     return [];
   }
 };
+
+/**
+ * allure-playwright's default `fullName` is `file:line:column`, which changes whenever a test moves in its file.
+ * TestOps selects tests for a test-plan run by that exact string, so a moved test silently drops out of the run.
+ * `useLegacyFullName: true` switches to the stable `file#suite test` form (allure-js#1567 tracks a richer option).
+ */
+export const checkPlaywrightFullName = (playwrightConfigSource: string, allureConfigSource: string | null): DoctorFinding[] => {
+  if (!playwrightConfigSource.includes("allure-playwright") || playwrightConfigSource.includes("useLegacyFullName")) {
+    return [];
+  }
+
+  if (!allureConfigSource || !/\btestops\b/.test(allureConfigSource)) {
+    return [];
+  }
+
+  return [
+    {
+      level: "info",
+      message: "allure-playwright uses file:line:column as the test's fullName, which shifts when a test moves in its file",
+      hint: 'TestOps test-plan runs match tests by it — set { useLegacyFullName: true } in the reporter options: ["allure-playwright", { useLegacyFullName: true }]',
+    },
+  ];
+};
