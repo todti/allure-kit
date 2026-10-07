@@ -13,6 +13,7 @@ If you ran `allure-kit init` before this release, run `allure-kit doctor`: it no
 - **CodeceptJS:** the `exports.config = {` form that `codeceptjs init` generates was not recognised.
 - **Pytest-BDD:** `allure-pytest` and `allure-pytest-bdd` were both installed; both register `--alluredir`, so pytest crashed at startup. Only the BDD adapter is installed now, and `doctor` flags projects that have both.
 - **Robot Framework:** the listener is `allure_robotframework:allure-results` (the documented `ListenerV3` does not exist in allure-robotframework 2.x); fixed in the hint and in generated CI commands.
+- **Behave** was reported for Pytest-BDD projects (their `features/*.feature` files look the same), so `init` installed an unneeded `allure-behave`; Behave now counts there only when `behave` is declared.
 - `--help` listed neither `gitlab init` nor `config`.
 
 ### Added
@@ -20,6 +21,7 @@ If you ran `allure-kit init` before this release, run `allure-kit doctor`: it no
 - `doctor` compatibility checks: `allure-playwright` < 3.9.0 with Playwright ≥ 1.60, `allure-vitest` ≥ 3.13 on Vitest < 3 (silently writes no results), `allure-js` adapters out of step with `allure-js-commons`, `qualityGate` with `historyPath` (allure3#895), a missing/invalid `ALLURE_TESTPLAN_PATH`, `allure` older than v3 or `allure-commandline` next to it, a custom plugin `import` pointing to a missing file, `allure-framework/allure-action` workflows without the permissions/token they need, a Playwright `fullName` hint for TestOps users, known adapter limitations.
 - `doctor --json` / `--strict`, and `doctor` for Python and Java projects (`--lang`).
 - `init --dry-run` (install command, a diff of every file it would change, the `allurerc` it would create), `init` prints the official configuration page of each framework, explains why a config was left untouched, and points at monorepo workspace packages.
+- `demo`: writes a minimal passing test for each detected framework (Vitest, Jest, Mocha, Playwright, Jasmine, Cucumber.js, pytest, Pytest-BDD, Behave, Robot Framework, JUnit 5) and prints how to run it; the end-to-end suite builds its tests with it.
 - `migrate`: JS/TS from Allure 2 (`allure-commandline`, `allure serve`, `--clean`) and Java (`allure-junit5` → `allure-jupiter`).
 - `ci init <circleci|jenkins|azure|bitbucket>`; `gitlab init` (JS/TS and Python); `gh-pages init` supports Python.
 - `config get|set|list|unset` (`name`, `output`, `resultsDir`, `historyPath`, `appendHistory`, `historyLimit`, `historyBaseUrl`, `knownIssuesPath`, `environment`, `port`, `flakyDetection.*`); `config set/unset` and `plugin add/remove` now edit a literal-object `allurerc.mjs` in place.
