@@ -1,0 +1,20 @@
+name: e2e
+
+# Runs the built CLI against real temporary projects with real npm installs (scripts/e2e.mjs).
+# Nightly, so a broken release of allure, an adapter or a test framework shows up here before users hit it.
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run e2e
