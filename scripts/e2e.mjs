@@ -303,6 +303,27 @@ scenario("cypress: init wires a CommonJS config that still loads", (dir) => {
   assert(/task|after:|before:/.test(registered.output), `setupNodeEvents registered Allure hooks (got ${JSON.stringify(registered.output)})`);
 });
 
+// WebdriverIO can't run here without a browser session, so check what `init` controls: the reporter entry in the
+// config (which must still load) and that the reporter package resolves.
+scenario("wdio: init adds the allure reporter to a CommonJS config that still loads", (dir) => {
+  write(dir, "package.json", JSON.stringify({ name: "e2e-wdio", private: true, devDependencies: { webdriverio: "^9.0.0" } }));
+  write(dir, "wdio.conf.js", "exports.config = {\n  runner: 'local',\n  specs: [],\n  reporters: ['spec'],\n};\n");
+  run(dir, "npm", ["install", "--no-audit", "--no-fund"]);
+  kit(dir, "init", "--yes");
+
+  const doctor = JSON.parse(kit(dir, "doctor", "--json").output);
+
+  assert(doctor.ok === true, `doctor reports no issues (got ${JSON.stringify(doctor.checks.filter((c) => c.level === "error"))})`);
+
+  const loaded = run(dir, process.execPath, [
+    "-e",
+    'const { config } = require("./wdio.conf.js"); require.resolve("@wdio/allure-reporter"); console.log(JSON.stringify(config.reporters));',
+  ]);
+
+  assert(/allure/.test(loaded.output), `the reporters list contains allure (got ${loaded.output.trim()})`);
+  assert(/spec/.test(loaded.output), "the existing reporter was kept");
+});
+
 scenario("migrate: Allure 2 project to Allure 3", (dir) => {
   write(
     dir,
