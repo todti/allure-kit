@@ -212,6 +212,23 @@ pythonScenario({
   command: ["behave", "-f", "allure_behave.formatter:AllureFormatter", "-o", "allure-results"],
 });
 
+pythonScenario({
+  id: "robotframework",
+  requirements: ["robotframework"],
+  files: { "sum.robot": "*** Test Cases ***\nAdd\n    Log    hello\n" },
+  command: ["robot", "--listener", "allure_robotframework:allure-results", "sum.robot"],
+});
+
+pythonScenario({
+  id: "pytest-bdd",
+  requirements: ["pytest-bdd"],
+  files: {
+    "features/sum.feature": "Feature: sum\n  Scenario: add\n    Given a number\n",
+    "test_sum.py": 'from pytest_bdd import given, scenarios\n\nscenarios("features/sum.feature")\n\n\n@given("a number")\ndef _():\n    pass\n',
+  },
+  command: ["pytest", "--alluredir=allure-results"],
+});
+
 scenario("migrate: Allure 2 project to Allure 3", (dir) => {
   write(
     dir,

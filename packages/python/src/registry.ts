@@ -25,7 +25,7 @@ export const PYTHON_FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
     packageName: "pytest-bdd",
     adapterPackage: "allure-pytest-bdd",
     setupHint:
-      'Run pytest with "--alluredir=allure-results" (Pytest-BDD scenarios are collected by pytest, alongside allure-pytest)',
+      'Run pytest with "--alluredir=allure-results". allure-pytest-bdd replaces allure-pytest (it registers the same option), so do not install both',
     configFilePatterns: [],
     testFilePatterns: [],
   },
@@ -34,7 +34,7 @@ export const PYTHON_FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
     displayName: "Robot Framework",
     packageName: "robotframework",
     adapterPackage: "allure-robotframework",
-    setupHint: 'Run robot with "--listener allure_robotframework.ListenerV3:allure-results"',
+    setupHint: 'Run robot with "--listener allure_robotframework:allure-results" (without a directory the listener writes to output/allure)',
     configFilePatterns: [],
     testFilePatterns: ["**/*.robot", "**/*.resource"],
   },

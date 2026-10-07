@@ -231,6 +231,12 @@ const checkManifestEcosystem = async (workingDir: string, report: Reporter, ecos
     report.add("warning", `No ${ecosystem.displayName} test frameworks detected`);
   }
 
+  if (declared.has("allure-pytest") && declared.has("allure-pytest-bdd")) {
+    report.add("error", "allure-pytest and allure-pytest-bdd are both declared — both register --alluredir, so pytest fails at startup");
+    report.hint("Keep only allure-pytest-bdd for a Pytest-BDD project (or only allure-pytest otherwise)");
+    issues++;
+  }
+
   for (const { framework } of detectedFrameworks) {
     if (declared.has(normalizePythonName(framework.adapterPackage))) {
       report.add("success", `${framework.displayName} → ${framework.adapterPackage} is declared in your dependencies`);

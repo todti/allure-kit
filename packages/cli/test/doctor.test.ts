@@ -184,6 +184,14 @@ describe("kit/doctor", () => {
       expect(output()).toContain("Found 1 issue");
     });
 
+    it("should flag allure-pytest and allure-pytest-bdd declared together", async () => {
+      await setUpPython("pytest-bdd==8.1.0\nallure-pytest==2.15.0\nallure-pytest-bdd==2.15.0\n");
+
+      await run();
+
+      expect(output()).toContain("allure-pytest and allure-pytest-bdd are both declared");
+    });
+
     it("should warn about a declared adapter whose framework is gone", async () => {
       await setUpPython("allure-behave==2.13.5\nrequests\n");
 
