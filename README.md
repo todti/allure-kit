@@ -136,7 +136,7 @@ Creates `.circleci/config.yml`, a `Jenkinsfile`, `azure-pipelines.yml` or `bitbu
 Creates a GitLab CI job (`.gitlab/allure-report.gitlab-ci.yml`, included from `.gitlab-ci.yml`) that runs your tests and calls `allure gitlab`: it builds the report, restores history from the previous run, and posts a summary comment on merge requests. Set a masked `GITLAB_TOKEN` CI/CD variable (api scope) to enable history restore and comments.
 
 ```bash
-allure-kit gitlab init [--yes] [--image <image>] [--config <path>] [--test-command <cmd>] [--cwd <path>]
+allure-kit gitlab init [--lang js|ts|python] [--yes] [--image <image>] [--config <path>] [--test-command <cmd>] [--cwd <path>]
 ```
 
 ### `config get` / `config set` / `config list` / `config unset`
@@ -204,7 +204,7 @@ Python:
 
 Python package managers pip, [Poetry](https://python-poetry.org/), [PDM](https://pdm-project.org/), and [Pipenv](https://pipenv.pypa.io/) are auto-detected the same way as the npm-family managers. `pip install` doesn't update any manifest on its own, so when pip is the resolved manager `init` also appends the installed adapter(s) to `requirements.txt`.
 
-`doctor` works for Python projects too: it checks that each detected framework's adapter is declared in your dependencies (`requirements*.txt`, `pyproject.toml`, `Pipfile`) and reminds you that reports need the Node.js Allure CLI. `gh-pages init` also scaffolds a Python workflow (`actions/setup-python`, the project's own installer, the framework's `--alluredir`/formatter command, Node for `npx allure generate`); `gitlab init` is still JS/TS-only.
+`doctor` works for Python projects too: it checks that each detected framework's adapter is declared in your dependencies (`requirements*.txt`, `pyproject.toml`, `Pipfile`) and reminds you that reports need the Node.js Allure CLI. `gh-pages init` also scaffolds a Python workflow (`actions/setup-python`, the project's own installer, the framework's `--alluredir`/formatter command, Node for `npx allure generate`); `gitlab init` supports Python too (a `python:3.12` job that installs Node.js from NodeSource for `allure gitlab`).
 
 ## Report plugins
 
