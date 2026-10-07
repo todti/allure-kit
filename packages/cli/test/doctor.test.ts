@@ -158,4 +158,38 @@ describe("kit/doctor", () => {
       expect((await runJson(true)).code).toBe(1);
     });
   });
+
+  describe("python projects", () => {
+    const setUpPython = async (requirements: string) => {
+      await writeFile(join(tempDir, "requirements.txt"), requirements);
+      await writeFile(join(tempDir, "allurerc.json"), JSON.stringify({ name: "Allure Report", plugins: {} }));
+    };
+
+    it("should accept a pytest project that declares allure-pytest", async () => {
+      await setUpPython("pytest==8.0.0\nallure_pytest==2.13.5\n");
+
+      await run();
+
+      expect(output()).toContain("allure-pytest is declared in your dependencies");
+      expect(output()).toContain("Node.js-based Allure CLI");
+      expect(output()).toContain("No issues found");
+    });
+
+    it("should flag a detected framework whose adapter isn't declared", async () => {
+      await setUpPython("pytest==8.0.0\n");
+
+      await run();
+
+      expect(output()).toContain("pytest detected but allure-pytest is not in your dependencies");
+      expect(output()).toContain("Found 1 issue");
+    });
+
+    it("should warn about a declared adapter whose framework is gone", async () => {
+      await setUpPython("allure-behave==2.13.5\nrequests\n");
+
+      await run();
+
+      expect(output()).toContain("allure-behave is declared but behave was not found");
+    });
+  });
 });

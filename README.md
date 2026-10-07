@@ -96,7 +96,7 @@ Finds every installed Allure package (CLI, adapters, plugins) and updates them a
 ### `doctor`
 
 ```bash
-allure-kit doctor [--json] [--strict] [--cwd <path>]
+allure-kit doctor [--lang js|ts|python] [--json] [--strict] [--cwd <path>]
 ```
 
 Checks: package manager detection, `allurerc` presence and validity, adapter packages for each detected framework, the `allure` CLI package, configured plugin packages, and adapters that are installed but no longer match a detected framework.
@@ -186,7 +186,7 @@ Python:
 
 Python package managers pip, [Poetry](https://python-poetry.org/), [PDM](https://pdm-project.org/), and [Pipenv](https://pipenv.pypa.io/) are auto-detected the same way as the npm-family managers. `pip install` doesn't update any manifest on its own, so when pip is the resolved manager `init` also appends the installed adapter(s) to `requirements.txt`.
 
-`doctor` and `gh-pages init` are JS/TS-only for now — they don't yet verify Python adapter installs or scaffold a Python CI workflow.
+`doctor` works for Python projects too: it checks that each detected framework's adapter is declared in your dependencies (`requirements*.txt`, `pyproject.toml`, `Pipfile`) and reminds you that reports need the Node.js Allure CLI. `gh-pages init` and `gitlab init` are still JS/TS-only — they don't scaffold a Python CI workflow yet.
 
 ## Report plugins
 

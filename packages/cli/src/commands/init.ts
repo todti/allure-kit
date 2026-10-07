@@ -9,7 +9,6 @@ import {
   buildAllureConfig,
   diffLines,
   executeCommand,
-  fileExists,
   getConfigFilename,
   findExistingConfig,
   logError,
@@ -24,32 +23,8 @@ import {
 import { Command, Option, UsageError } from "clipanion";
 import prompts from "prompts";
 
-import { ECOSYSTEMS } from "../ecosystems.js";
+import { ECOSYSTEMS, resolveEcosystem } from "../ecosystems.js";
 
-/**
- * Without an explicit --lang, check each ecosystem's manifest files in
- * registration order (ECOSYSTEMS[0] = npm, matching the long-standing
- * default-to-npm behavior) and default to the first ecosystem if none match.
- */
-const resolveEcosystem = async (cwd: string, lang: string | undefined): Promise<EcosystemAdapter> => {
-  if (lang) {
-    const match = ECOSYSTEMS.find((ecosystem) => ecosystem.langAliases.includes(lang));
-
-    if (match) {
-      return match;
-    }
-  }
-
-  for (const ecosystem of ECOSYSTEMS) {
-    for (const filename of ecosystem.manifestFiles) {
-      if (await fileExists(resolve(cwd, filename))) {
-        return ecosystem;
-      }
-    }
-  }
-
-  return ECOSYSTEMS[0];
-};
 
 const findFrameworkByIdOrPackage = (value: string, registry: FrameworkDescriptor[]) => {
   const lowered = value.toLowerCase();
