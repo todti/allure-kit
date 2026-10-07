@@ -1,7 +1,7 @@
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 
-import type { ConfigPatchOutcome, FrameworkDescriptor } from "@todti/allure-kit-core";
+import type { ConfigPatchOutcome, FileWriter, FrameworkDescriptor } from "@todti/allure-kit-core";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 
 export type { ConfigPatchOutcome };
@@ -315,7 +315,16 @@ const patchCypressConfigFile = (text: string): string | null => {
   return result;
 };
 
-const patchCypressFramework = async (cwd: string, framework: FrameworkDescriptor): Promise<ConfigPatchOutcome> => {
+const writeToDisk: FileWriter = async (filePath, content) => {
+  await mkdir(dirname(filePath), { recursive: true });
+  await writeFile(filePath, content, "utf-8");
+};
+
+const patchCypressFramework = async (
+  cwd: string,
+  framework: FrameworkDescriptor,
+  write: FileWriter,
+): Promise<ConfigPatchOutcome> => {
   const configPath = await findExistingFile(cwd, framework.configFilePatterns);
 
   if (!configPath) {
@@ -334,7 +343,7 @@ const patchCypressFramework = async (cwd: string, framework: FrameworkDescriptor
     return { status: "unrecognized-shape", configPath };
   }
 
-  await writeFile(configPath, patchedConfig, "utf-8");
+  await write(configPath, patchedConfig);
 
   const supportFile = await findExistingFile(cwd, CYPRESS_SUPPORT_FILE_CANDIDATES);
 
@@ -349,7 +358,7 @@ const patchCypressFramework = async (cwd: string, framework: FrameworkDescriptor
   const supportText = await readFile(supportFile, "utf-8");
 
   if (!supportText.includes("allure-cypress")) {
-    await writeFile(supportFile, `import "allure-cypress";\n${supportText}`, "utf-8");
+    await write(supportFile, `import "allure-cypress";\n${supportText}`);
   }
 
   return { status: "patched", configPath };
@@ -378,7 +387,11 @@ const deriveJasmineHelperTarget = (helpers: unknown): { dir: string; ext: "js" |
   return null;
 };
 
-const patchJasmineFramework = async (cwd: string, framework: FrameworkDescriptor): Promise<ConfigPatchOutcome> => {
+const patchJasmineFramework = async (
+  cwd: string,
+  framework: FrameworkDescriptor,
+  write: FileWriter,
+): Promise<ConfigPatchOutcome> => {
   const configPath = await findExistingFile(cwd, framework.configFilePatterns);
 
   if (!configPath) {
@@ -418,8 +431,7 @@ const patchJasmineFramework = async (cwd: string, framework: FrameworkDescriptor
       ? 'import AllureJasmineReporter from "allure-jasmine";\n\njasmine.getEnv().addReporter(new AllureJasmineReporter());\n'
       : 'const AllureJasmineReporter = require("allure-jasmine");\n\njasmine.getEnv().addReporter(new AllureJasmineReporter());\n';
 
-  await mkdir(helperDir, { recursive: true });
-  await writeFile(helperPath, content, "utf-8");
+  await write(helperPath, content);
 
   return { status: "patched", configPath: helperPath };
 };
@@ -492,13 +504,14 @@ export const checkFrameworkWiring = async (cwd: string, framework: FrameworkDesc
 export const patchFrameworkConfig = async (
   cwd: string,
   framework: FrameworkDescriptor,
+  write: FileWriter = writeToDisk,
 ): Promise<ConfigPatchOutcome> => {
   if (framework.id === "cypress") {
-    return patchCypressFramework(cwd, framework);
+    return patchCypressFramework(cwd, framework, write);
   }
 
   if (framework.id === "jasmine") {
-    return patchJasmineFramework(cwd, framework);
+    return patchJasmineFramework(cwd, framework, write);
   }
 
   const alreadyConfigured = ALREADY_CONFIGURED[framework.id];
@@ -554,7 +567,7 @@ export const patchFrameworkConfig = async (
     return { status: "unrecognized-shape", configPath };
   }
 
-  await writeFile(configPath, patchedText, "utf-8");
+  await write(configPath, patchedText);
 
   return { status: "patched", configPath };
 };

@@ -123,4 +123,39 @@ describe("kit/doctor", () => {
     expect(output()).toContain("allure-playwright@3.4.5 is too old for @playwright/test@1.60.0");
     expect(output()).toContain("Found 1 issue");
   });
+
+  describe("--json / --strict", () => {
+    const runJson = async (strict = false) => {
+      let out = "";
+      const command = new KitDoctorCommand();
+
+      command.cwd = tempDir;
+      command.json = true;
+      command.strict = strict;
+      command.context = { stdout: { write: (chunk: string) => ((out += chunk), true) } } as never;
+
+      const code = await command.execute();
+
+      return { code, result: JSON.parse(out) };
+    };
+
+    it("prints only JSON with every check, its step and hint", async () => {
+      const { code, result } = await runJson();
+
+      expect(logMock).not.toHaveBeenCalled();
+      expect(code).toBe(0);
+      expect(result.ok).toBe(false);
+      expect(result.issues).toBe(2);
+      expect(result.checks).toContainEqual({
+        step: "Checking config file",
+        level: "error",
+        message: "No allurerc config file found",
+        hint: "Run 'allure-kit init' to create one",
+      });
+    });
+
+    it("exits with 1 under --strict when issues are found", async () => {
+      expect((await runJson(true)).code).toBe(1);
+    });
+  });
 });

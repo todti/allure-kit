@@ -88,7 +88,7 @@ export const getConfigFilename = (format: ConfigFormat): string => {
   }
 };
 
-const serializeConfig = (config: AllureConfig, format: ConfigFormat): string => {
+export const serializeConfig = (config: AllureConfig, format: ConfigFormat): string => {
   switch (format) {
     case "json":
       return JSON.stringify(config, null, 2) + "\n";

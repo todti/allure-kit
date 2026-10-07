@@ -1,4 +1,5 @@
 import * as console from "node:console";
+import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import {
@@ -6,8 +7,10 @@ import {
   type EcosystemAdapter,
   type FrameworkDescriptor,
   buildAllureConfig,
+  diffLines,
   executeCommand,
   fileExists,
+  getConfigFilename,
   findExistingConfig,
   logError,
   logHint,
@@ -15,6 +18,7 @@ import {
   logSuccess,
   logWarning,
   REPORT_PLUGIN_REGISTRY,
+  serializeConfig,
   writeAllureConfig,
 } from "@todti/allure-kit-core";
 import { Command, Option, UsageError } from "clipanion";
@@ -97,14 +101,19 @@ export class KitInitCommand extends Command {
     description: "Force-select a single framework (e.g. playwright, vitest, wdio, pytest, behave)",
   });
 
+  dryRun = Option.Boolean("--dry-run", false, {
+    description: "Show what would be installed and changed without touching any files",
+  });
+
   cwd = Option.String("--cwd", {
     description: "Working directory (default: current directory)",
   });
 
   async execute() {
     const workingDir = typeof this.cwd === "string" ? this.cwd : cwdDefault();
+    const dryRun = this.dryRun === true;
 
-    console.log("\n  Allure 3 Setup\n");
+    console.log(`\n  Allure 3 Setup${dryRun ? " (dry run — nothing will be changed)" : ""}\n`);
 
     const supportedLangs = ECOSYSTEMS.flatMap((ecosystem) => ecosystem.langAliases);
 
@@ -258,7 +267,9 @@ export class KitInitCommand extends Command {
     const packageManager = await ecosystem.detectPackageManager(workingDir);
     const packagesToInstall = [...ecosystem.alwaysInstallPackages, ...selectedAdapters];
 
-    if (packagesToInstall.length > 0) {
+    if (packagesToInstall.length > 0 && dryRun) {
+      logInfo(`would run: ${ecosystem.getInstallCommand(packageManager, packagesToInstall, true)}`);
+    } else if (packagesToInstall.length > 0) {
       const installCommand = ecosystem.getInstallCommand(packageManager, packagesToInstall, true);
       const result = await executeCommand(installCommand, workingDir);
 
@@ -286,10 +297,26 @@ export class KitInitCommand extends Command {
         continue;
       }
 
-      const outcome = await ecosystem.patchFrameworkConfig?.(workingDir, framework);
+      const plannedWrites: { path: string; content: string }[] = [];
+      const outcome = await ecosystem.patchFrameworkConfig?.(
+        workingDir,
+        framework,
+        dryRun ? async (path, content) => void plannedWrites.push({ path, content }) : undefined,
+      );
+
+      for (const { path, content } of plannedWrites) {
+        const before = await readFile(path, "utf-8").catch(() => "");
+
+        logInfo(`would ${before === "" ? "create" : "modify"} ${path}:`);
+        console.log(diffLines(before, content));
+      }
 
       if (!outcome) {
         logHint(`${framework.displayName}: ${framework.setupHint}`);
+        continue;
+      }
+
+      if (outcome.status === "patched" && dryRun) {
         continue;
       }
 
@@ -307,6 +334,14 @@ export class KitInitCommand extends Command {
     }
 
     const config = buildAllureConfig(reportName, selectedPluginIds);
+
+    if (dryRun) {
+      logInfo(`would create ${getConfigFilename(configFormat)}:`);
+      console.log(diffLines("", serializeConfig(config, configFormat)));
+
+      return;
+    }
+
     const createdFilename = await writeAllureConfig(workingDir, config, configFormat);
 
     const verifyConfig = await findExistingConfig(workingDir);

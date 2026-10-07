@@ -72,7 +72,7 @@ Allure 3's report generator (`allure generate`) is a Node.js CLI regardless of t
 ### `init`
 
 ```bash
-allure-kit init [--lang js|ts|python] [--framework <id>] [--format json|yaml|mjs] [--yes] [--cwd <path>]
+allure-kit init [--lang js|ts|python] [--framework <id>] [--format json|yaml|mjs] [--yes] [--dry-run] [--cwd <path>]
 ```
 
 Detects test frameworks (by dependencies, config files, and existing tests), installs matching adapters, and creates an `allurerc` config. `init` does **not** generate any demo tests — it only configures Allure. Sample tests live in a separate repository.
@@ -82,6 +82,7 @@ Flags:
 - `--framework` — force-pick a single framework by id or package name (`playwright`, `vitest`, `wdio`, `pytest`, `behave`, ...). Implies non-interactive mode with the default `awesome` plugin.
 - `--format` — `json` (default), `yaml`, or `mjs` config format.
 - `--yes` — accept defaults without prompts.
+- `--dry-run` — print the install command, a diff of every framework config it would change, and the `allurerc` it would create, without touching anything.
 - `--cwd` — working directory.
 
 ### `update`
@@ -95,12 +96,14 @@ Finds every installed Allure package (CLI, adapters, plugins) and updates them a
 ### `doctor`
 
 ```bash
-allure-kit doctor [--cwd <path>]
+allure-kit doctor [--json] [--strict] [--cwd <path>]
 ```
 
 Checks: package manager detection, `allurerc` presence and validity, adapter packages for each detected framework, the `allure` CLI package, configured plugin packages, and adapters that are installed but no longer match a detected framework.
 
 It also looks for combinations that fail silently: an adapter too old for the installed framework (currently `allure-playwright` < 3.9.0 with Playwright ≥ 1.60, where selective test-plan runs stop working), `allure-js` adapters on a different minor version than `allure-js-commons`, `qualityGate` combined with `historyPath` (known upstream issue [allure3#895](https://github.com/allure-framework/allure3/issues/895)), an `ALLURE_TESTPLAN_PATH` that points to a missing or invalid file, an `allure` package older than v3 or `allure-commandline` (Allure 2) installed next to it. It also lists known adapter limitations for the detected frameworks (no retry marking in Jest/Vitest, no test-plan support in CodeceptJS/Newman, Newman not writing `environmentInfo`/`categories`).
+
+`--json` prints every check (step, level, message, hint) as JSON for CI and scripts; `--strict` makes the command exit with code 1 when issues are found.
 
 ### `gh-pages init`
 
