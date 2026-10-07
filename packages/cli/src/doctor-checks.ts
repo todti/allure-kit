@@ -1,6 +1,8 @@
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { isAbsolute, resolve } from "node:path";
+
+import { parse as parseYaml } from "yaml";
 
 export interface DoctorFinding {
   level: "error" | "warning" | "info";
@@ -289,3 +291,96 @@ export const checkPluginImports = (config: { plugins?: Record<string, { import?:
           },
         ];
   });
+
+type PermissionMap = Record<string, unknown> | string | undefined;
+
+const hasWrite = (permissions: PermissionMap, scope: string): boolean =>
+  permissions === "write-all" || (typeof permissions === "object" && permissions !== null && permissions[scope] === "write");
+
+/**
+ * The official Allure GitHub Action posts PR comments and a check run, so the job needs `pull-requests: write` and
+ * `checks: write` and a `github-token` input (https://allurereport.org/docs/integrations-github-action/). Without them the step
+ * runs but nothing shows up on the pull request.
+ */
+export const checkAllureActionPermissions = (workflows: { file: string; content: string }[]): DoctorFinding[] => {
+  const findings: DoctorFinding[] = [];
+
+  for (const { file, content } of workflows) {
+    let workflow: { permissions?: PermissionMap; jobs?: Record<string, { permissions?: PermissionMap; steps?: unknown[] }> };
+
+    try {
+      workflow = parseYaml(content) ?? {};
+    } catch {
+      continue;
+    }
+
+    for (const [jobName, job] of Object.entries(workflow.jobs ?? {})) {
+      const actionStep = (job?.steps ?? []).find(
+        (step): step is { uses: string; with?: Record<string, unknown> } =>
+          typeof (step as { uses?: unknown })?.uses === "string" && (step as { uses: string }).uses.startsWith("allure-framework/allure-action"),
+      );
+
+      if (!actionStep) {
+        continue;
+      }
+
+      const permissions = job.permissions ?? workflow.permissions;
+      const missing = ["pull-requests", "checks"].filter((scope) => !hasWrite(permissions, scope));
+
+      if (missing.length > 0) {
+        findings.push({
+          level: "warning",
+          message: `${file} (job "${jobName}"): allure-action needs ${missing.map((scope) => `${scope}: write`).join(" and ")}, so PR comments and checks won't appear`,
+          hint: "Add to the workflow or job:\npermissions:\n  pull-requests: write\n  checks: write",
+        });
+      }
+
+      if (!actionStep.with?.["github-token"]) {
+        findings.push({
+          level: "warning",
+          message: `${file} (job "${jobName}"): allure-action has no github-token input`,
+          hint: "Add `github-token: ${{ secrets.GITHUB_TOKEN }}` under the step's `with:`",
+        });
+      }
+    }
+  }
+
+  return findings;
+};
+
+export const readGithubWorkflows = async (cwd: string): Promise<{ file: string; content: string }[]> => {
+  const dir = resolve(cwd, ".github", "workflows");
+
+  try {
+    const files = (await readdir(dir)).filter((name) => /\.ya?ml$/.test(name));
+
+    return await Promise.all(
+      files.map(async (name) => ({ file: `.github/workflows/${name}`, content: await readFile(resolve(dir, name), "utf-8") })),
+    );
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * allure-playwright's default `fullName` is `file:line:column`, which changes whenever a test moves in its file.
+ * TestOps selects tests for a test-plan run by that exact string, so a moved test silently drops out of the run.
+ * `useLegacyFullName: true` switches to the stable `file#suite test` form (allure-js#1567 tracks a richer option).
+ */
+export const checkPlaywrightFullName = (playwrightConfigSource: string, allureConfigSource: string | null): DoctorFinding[] => {
+  if (!playwrightConfigSource.includes("allure-playwright") || playwrightConfigSource.includes("useLegacyFullName")) {
+    return [];
+  }
+
+  if (!allureConfigSource || !/\btestops\b/.test(allureConfigSource)) {
+    return [];
+  }
+
+  return [
+    {
+      level: "info",
+      message: "allure-playwright uses file:line:column as the test's fullName, which shifts when a test moves in its file",
+      hint: 'TestOps test-plan runs match tests by it — set { useLegacyFullName: true } in the reporter options: ["allure-playwright", { useLegacyFullName: true }]',
+    },
+  ];
+};
