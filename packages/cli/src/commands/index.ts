@@ -14,3 +14,4 @@ export { KitPluginListCommand } from "./pluginList.js";
 export { KitConfigGetCommand, KitConfigListCommand, KitConfigSetCommand, KitConfigUnsetCommand } from "./config.js";
 export { KitGitlabInitCommand } from "./gitlabInit.js";
 export { KitCiInitCommand } from "./ciInit.js";
+export { KitMigrateCommand } from "./migrate.js";

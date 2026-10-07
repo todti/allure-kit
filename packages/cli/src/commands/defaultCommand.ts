@@ -30,6 +30,7 @@ const COMMANDS = [
   { name: "plugin edit <name>", description: "Edit the options of a configured report plugin" },
   { name: "plugin remove <name>", description: "Remove a report plugin" },
   { name: "plugin list", description: "List available report plugins" },
+  { name: "migrate", description: "Migrate a JS/TS project from Allure 2 (allure-commandline) to Allure 3" },
   { name: "update", description: "Update all Allure packages to latest" },
   { name: "doctor", description: "Diagnose your Allure configuration" },
 ];
