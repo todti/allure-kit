@@ -126,4 +126,26 @@ describe("kit/ci-init", () => {
       expect(await run("azure")).toContain("NodeTool@0");
     });
   });
+
+  it("creates a Bitbucket pipeline that captures the report artifact even when the step fails", async () => {
+    const pipeline = parseYaml(await run("bitbucket"));
+    const step = pipeline.pipelines.default[0].step;
+
+    expect(pipeline.image).toBe("node:20");
+    expect(step.script).toContain("npm test || touch .tests-failed");
+    expect(step.script.at(-1)).toBe("test ! -f .tests-failed");
+    expect(step.artifacts[0]).toMatchObject({ type: "scoped", "capture-on": "always" });
+  });
+
+  it("refuses to generate a Bitbucket pipeline for Python projects", async () => {
+    await writeFile(join(dir, "requirements.txt"), "pytest\n");
+
+    const command = new KitCiInitCommand();
+
+    command.provider = "bitbucket";
+    command.cwd = dir;
+    command.yes = true;
+
+    await expect(command.execute()).rejects.toThrow(/single container image/);
+  });
 });

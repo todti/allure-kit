@@ -29,6 +29,8 @@ interface CiProvider {
   description: string;
   build: (plan: CiPlan) => string;
   nextSteps: string[];
+  /** Providers that run a single container image can't offer Python and Node together out of the box. */
+  jsOnly?: boolean;
 }
 
 const groovySingleQuoted = (command: string) => command.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
@@ -70,6 +72,30 @@ workflows:
   allure:
     jobs:
       - allure-report
+`,
+  },
+  bitbucket: {
+    file: "bitbucket-pipelines.yml",
+    description: "Bitbucket Pipelines",
+    jsOnly: true,
+    nextSteps: ["Open the finished pipeline → Artifacts tab → download allure-report"],
+    build: (plan) => `image: node:20
+
+pipelines:
+  default:
+    - step:
+        name: Allure report
+        script:
+          - ${plan.installCommand}
+          - ${plan.testCommand} || touch .tests-failed
+          - ${plan.generateCommand}
+          - test ! -f .tests-failed
+        artifacts:
+          - name: allure-report
+            type: scoped
+            paths:
+              - ${plan.reportDir}/**
+            capture-on: always
 `,
   },
   jenkins: {
@@ -158,7 +184,7 @@ export class KitCiInitCommand extends Command {
   static paths = [["ci", "init"]];
 
   static usage = Command.Usage({
-    description: "Scaffold a CI pipeline that builds the Allure report (circleci, jenkins, azure)",
+    description: "Scaffold a CI pipeline that builds the Allure report (circleci, jenkins, azure, bitbucket)",
     details: `Creates a pipeline that installs dependencies, runs the tests, builds the report with "allure generate" even when tests fail, keeps it as a build artifact and then fails the job if tests failed. For GitHub use "gh-pages init", for GitLab "gitlab init". Providers: ${Object.keys(CI_PROVIDERS).join(", ")}.`,
     examples: [
       ["ci init circleci", "Create .circleci/config.yml"],
@@ -203,6 +229,13 @@ export class KitCiInitCommand extends Command {
     const java = ecosystem.id === "java";
 
     const python = ecosystem.id === "pip";
+
+    if ((python || java) && provider.jsOnly) {
+      throw new UsageError(
+        `${provider.description} runs a single container image, so a ${java ? "Java" : "Python+Node"} pipeline isn't generated. Use circleci, jenkins or azure for non-JS projects.`,
+      );
+    }
+
     const testCommand = typeof this.testCommand === "string" ? this.testCommand : undefined;
     let plan: CiPlan;
 

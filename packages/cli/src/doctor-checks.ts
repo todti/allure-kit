@@ -1,6 +1,8 @@
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { isAbsolute, resolve } from "node:path";
+
+import { parse as parseYaml } from "yaml";
 
 export interface DoctorFinding {
   level: "error" | "warning" | "info";
@@ -57,6 +59,27 @@ export const ADAPTER_COMPAT_RULES: AdapterCompatRule[] = [
   },
 ];
 
+interface FrameworkTooOldRule {
+  frameworkPackage: string;
+  adapterPackage: string;
+  /** The framework is broken below this version... */
+  frameworkBelow: string;
+  /** ...when combined with the adapter at this version or newer. */
+  adapterFrom: string;
+  problem: string;
+}
+
+/** Reproduced by running the combination in a clean project, not taken from an issue tracker. */
+export const FRAMEWORK_TOO_OLD_RULES: FrameworkTooOldRule[] = [
+  {
+    frameworkPackage: "vitest",
+    adapterPackage: "allure-vitest",
+    frameworkBelow: "3.0.0",
+    adapterFrom: "3.13.0",
+    problem: "the reporter writes no allure-results at all, and nothing reports an error (reproduced with vitest 2.1.9)",
+  },
+];
+
 export const checkAdapterCompat = async (cwd: string): Promise<DoctorFinding[]> => {
   const findings: DoctorFinding[] = [];
 
@@ -78,6 +101,28 @@ export const checkAdapterCompat = async (cwd: string): Promise<DoctorFinding[]> 
         level: "error",
         message: `${rule.adapterPackage}@${adapterVersion} is too old for ${rule.frameworkPackage}@${frameworkVersion}: ${rule.problem}`,
         hint: `Upgrade: ${rule.adapterPackage}@>=${rule.adapterMin} (allure-kit update)`,
+      });
+    }
+  }
+
+  for (const rule of FRAMEWORK_TOO_OLD_RULES) {
+    const [frameworkVersion, adapterVersion] = await Promise.all([
+      readInstalledVersion(cwd, rule.frameworkPackage),
+      readInstalledVersion(cwd, rule.adapterPackage),
+    ]);
+
+    if (!frameworkVersion || !adapterVersion) {
+      continue;
+    }
+
+    const frameworkCmp = compareVersions(frameworkVersion, rule.frameworkBelow);
+    const adapterCmp = compareVersions(adapterVersion, rule.adapterFrom);
+
+    if (frameworkCmp !== null && adapterCmp !== null && frameworkCmp < 0 && adapterCmp >= 0) {
+      findings.push({
+        level: "error",
+        message: `${rule.frameworkPackage}@${frameworkVersion} with ${rule.adapterPackage}@${adapterVersion}: ${rule.problem}`,
+        hint: `Upgrade ${rule.frameworkPackage} to ${rule.frameworkBelow} or newer, or pin ${rule.adapterPackage} to an older release`,
       });
     }
   }
@@ -246,3 +291,96 @@ export const checkPluginImports = (config: { plugins?: Record<string, { import?:
           },
         ];
   });
+
+type PermissionMap = Record<string, unknown> | string | undefined;
+
+const hasWrite = (permissions: PermissionMap, scope: string): boolean =>
+  permissions === "write-all" || (typeof permissions === "object" && permissions !== null && permissions[scope] === "write");
+
+/**
+ * The official Allure GitHub Action posts PR comments and a check run, so the job needs `pull-requests: write` and
+ * `checks: write` and a `github-token` input (https://allurereport.org/docs/integrations-github-action/). Without them the step
+ * runs but nothing shows up on the pull request.
+ */
+export const checkAllureActionPermissions = (workflows: { file: string; content: string }[]): DoctorFinding[] => {
+  const findings: DoctorFinding[] = [];
+
+  for (const { file, content } of workflows) {
+    let workflow: { permissions?: PermissionMap; jobs?: Record<string, { permissions?: PermissionMap; steps?: unknown[] }> };
+
+    try {
+      workflow = parseYaml(content) ?? {};
+    } catch {
+      continue;
+    }
+
+    for (const [jobName, job] of Object.entries(workflow.jobs ?? {})) {
+      const actionStep = (job?.steps ?? []).find(
+        (step): step is { uses: string; with?: Record<string, unknown> } =>
+          typeof (step as { uses?: unknown })?.uses === "string" && (step as { uses: string }).uses.startsWith("allure-framework/allure-action"),
+      );
+
+      if (!actionStep) {
+        continue;
+      }
+
+      const permissions = job.permissions ?? workflow.permissions;
+      const missing = ["pull-requests", "checks"].filter((scope) => !hasWrite(permissions, scope));
+
+      if (missing.length > 0) {
+        findings.push({
+          level: "warning",
+          message: `${file} (job "${jobName}"): allure-action needs ${missing.map((scope) => `${scope}: write`).join(" and ")}, so PR comments and checks won't appear`,
+          hint: "Add to the workflow or job:\npermissions:\n  pull-requests: write\n  checks: write",
+        });
+      }
+
+      if (!actionStep.with?.["github-token"]) {
+        findings.push({
+          level: "warning",
+          message: `${file} (job "${jobName}"): allure-action has no github-token input`,
+          hint: "Add `github-token: ${{ secrets.GITHUB_TOKEN }}` under the step's `with:`",
+        });
+      }
+    }
+  }
+
+  return findings;
+};
+
+export const readGithubWorkflows = async (cwd: string): Promise<{ file: string; content: string }[]> => {
+  const dir = resolve(cwd, ".github", "workflows");
+
+  try {
+    const files = (await readdir(dir)).filter((name) => /\.ya?ml$/.test(name));
+
+    return await Promise.all(
+      files.map(async (name) => ({ file: `.github/workflows/${name}`, content: await readFile(resolve(dir, name), "utf-8") })),
+    );
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * allure-playwright's default `fullName` is `file:line:column`, which changes whenever a test moves in its file.
+ * TestOps selects tests for a test-plan run by that exact string, so a moved test silently drops out of the run.
+ * `useLegacyFullName: true` switches to the stable `file#suite test` form (allure-js#1567 tracks a richer option).
+ */
+export const checkPlaywrightFullName = (playwrightConfigSource: string, allureConfigSource: string | null): DoctorFinding[] => {
+  if (!playwrightConfigSource.includes("allure-playwright") || playwrightConfigSource.includes("useLegacyFullName")) {
+    return [];
+  }
+
+  if (!allureConfigSource || !/\btestops\b/.test(allureConfigSource)) {
+    return [];
+  }
+
+  return [
+    {
+      level: "info",
+      message: "allure-playwright uses file:line:column as the test's fullName, which shifts when a test moves in its file",
+      hint: 'TestOps test-plan runs match tests by it — set { useLegacyFullName: true } in the reporter options: ["allure-playwright", { useLegacyFullName: true }]',
+    },
+  ];
+};

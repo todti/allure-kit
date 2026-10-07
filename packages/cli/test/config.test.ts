@@ -79,4 +79,26 @@ describe("kit/config", () => {
 
     expect(await run(["config", "list", "--cwd", dir])).toBe('name = "R"\noutput = "./out"\nappendHistory = false\nhistoryLimit = 20\n');
   });
+
+  it("edits an allurerc.mjs in place for set and unset", async () => {
+    await rm(file());
+
+    const mjs = join(dir, "allurerc.mjs");
+
+    await writeFile(mjs, `export default defineConfig({\n  name: "R",\n  flakyDetection: { historyDepth: 5 },\n});\n`);
+
+    await run(["config", "set", "historyPath", "./history.jsonl", "--cwd", dir]);
+    await run(["config", "set", "flakyDetection.historyDepth", "12", "--cwd", dir]);
+
+    let text = await readFile(mjs, "utf-8");
+
+    expect(text).toContain('historyPath: "./history.jsonl",');
+    expect(text).toContain("flakyDetection: { historyDepth: 12 }");
+
+    await run(["config", "unset", "historyPath", "--cwd", dir]);
+    text = await readFile(mjs, "utf-8");
+
+    expect(text).not.toContain("historyPath");
+    expect(text).toContain('name: "R"');
+  });
 });

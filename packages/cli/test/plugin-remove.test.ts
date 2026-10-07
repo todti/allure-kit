@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -125,5 +125,19 @@ describe("kit/plugin remove", () => {
     await runCommand(["plugin", "remove", "csv", "--uninstall", "--cwd", tempDir]);
 
     expect(executeCommandMock).not.toHaveBeenCalled();
+  });
+
+  it("should remove the plugin from an allurerc.mjs by editing the source", async () => {
+    await writeFile(
+      join(tempDir, "allurerc.mjs"),
+      `export default defineConfig({\n  name: "R",\n  plugins: {\n    awesome: { options: {} },\n    csv: { options: { fileName: "a.csv" } },\n  },\n});\n`,
+    );
+
+    await runCommand(["plugin", "remove", "csv", "--cwd", tempDir]);
+
+    const text = await readFile(join(tempDir, "allurerc.mjs"), "utf-8");
+
+    expect(text).not.toContain("csv");
+    expect(text).toContain("awesome: { options: {} },");
   });
 });
