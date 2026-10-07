@@ -298,6 +298,41 @@ const patchCodeceptConfig = (text: string): string | null => {
   return patchObjectKeyInRegion(text, "allure", allureEntry, braceEnd);
 };
 
+const EXISTING_KEY_EXPECTATIONS: Record<string, { key: string; expected: string }> = {
+  playwright: { key: "reporter", expected: "an array" },
+  wdio: { key: "reporters", expected: "an array" },
+  vitest: { key: "test", expected: "an object literal with array-valued reporters/setupFiles" },
+  jest: { key: "testEnvironment", expected: "unset" },
+  mocha: { key: "reporter", expected: "unset" },
+  cucumberjs: { key: "default", expected: "an object literal with an array-valued format" },
+  codeceptjs: { key: "plugins", expected: "an object literal" },
+};
+
+/** Best-effort explanation of why a text config couldn't be patched, so the user knows what to adjust by hand. */
+const explainUnpatchable = (frameworkId: string, text: string, configPath: string): string => {
+  if (configPath.endsWith(".json") || configPath.endsWith(".yml") || configPath.endsWith(".yaml")) {
+    const expectation = EXISTING_KEY_EXPECTATIONS[frameworkId];
+
+    return expectation
+      ? `\`${expectation.key}\` is already set to a value Allure can't extend automatically (expected ${expectation.expected})`
+      : "the config has a shape the patcher doesn't recognise";
+  }
+
+  const afterBrace = findConfigObjectOpenBrace(text);
+
+  if (afterBrace === null) {
+    return "couldn't find the exported config object (expected `export default defineConfig({...})`, `export default {...}` or `module.exports = {...}`)";
+  }
+
+  const expectation = EXISTING_KEY_EXPECTATIONS[frameworkId];
+
+  if (expectation && findTopLevelProperty(text, afterBrace - 1, expectation.key)) {
+    return `\`${expectation.key}\` is already set to something other than ${expectation.expected}, so it was left alone instead of being shadowed`;
+  }
+
+  return "the config has a shape the patcher doesn't recognise";
+};
+
 const ALREADY_CONFIGURED: Record<string, (text: string) => boolean> = {
   playwright: (text) => text.includes("allure-playwright"),
   wdio: (text) => /['"]allure['"]/.test(text),
@@ -371,7 +406,11 @@ const patchCypressFramework = async (
   const patchedConfig = patchCypressConfigFile(text);
 
   if (patchedConfig === null) {
-    return { status: "unrecognized-shape", configPath };
+    return {
+      status: "unrecognized-shape",
+      configPath,
+      reason: "no setupNodeEvents(on, config) function found (renamed or destructured parameters aren't handled)",
+    };
   }
 
   await write(configPath, patchedConfig);
@@ -434,13 +473,17 @@ const patchJasmineFramework = async (
   try {
     json = JSON.parse(await readFile(configPath, "utf-8")) as Record<string, unknown>;
   } catch {
-    return { status: "unrecognized-shape", configPath };
+    return { status: "unrecognized-shape", configPath, reason: "the Jasmine config isn't valid JSON" };
   }
 
   const target = deriveJasmineHelperTarget(json.helpers);
 
   if (!target) {
-    return { status: "unrecognized-shape", configPath };
+    return {
+      status: "unrecognized-shape",
+      configPath,
+      reason: '"helpers" is missing or isn\'t a "<dir>/**/*.js|ts" glob, so there is no folder to put the reporter helper in',
+    };
   }
 
   const helperDir = resolve(cwd, target.dir);
@@ -449,10 +492,13 @@ const patchJasmineFramework = async (
   try {
     const existing = await readFile(helperPath, "utf-8");
 
-    return {
-      status: existing.includes("allure-jasmine") ? "already-configured" : "unrecognized-shape",
-      configPath: helperPath,
-    };
+    return existing.includes("allure-jasmine")
+      ? { status: "already-configured", configPath: helperPath }
+      : {
+          status: "unrecognized-shape",
+          configPath: helperPath,
+          reason: `${target.dir}/allure.reporter.${target.ext} already exists without the Allure reporter`,
+        };
   } catch {
     // Helper doesn't exist yet — create it below.
   }
@@ -595,7 +641,7 @@ export const patchFrameworkConfig = async (
   }
 
   if (patchedText === null) {
-    return { status: "unrecognized-shape", configPath };
+    return { status: "unrecognized-shape", configPath, reason: explainUnpatchable(framework.id, text, configPath) };
   }
 
   await write(configPath, patchedText);

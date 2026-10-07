@@ -311,6 +311,10 @@ export class KitInitCommand extends Command {
       } else if (outcome.status === "already-configured") {
         logInfo(`${framework.displayName} config already has the Allure reporter`);
       } else {
+        if (outcome.reason) {
+          logWarning(`${framework.displayName}: config left untouched — ${outcome.reason}`);
+        }
+
         logHint(`${framework.displayName}: ${framework.setupHint}`);
       }
     }

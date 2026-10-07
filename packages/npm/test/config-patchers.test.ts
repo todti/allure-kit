@@ -669,4 +669,31 @@ describe("kit/config-patchers", () => {
       expect(text).toContain('testEnvironment: "allure-jest/environment",');
     });
   });
+
+  describe("failure reasons", () => {
+    const reasonFor = async (file: string, id: string, content: string) => {
+      await writeFile(join(tempDir, file), content);
+
+      return patchFrameworkConfig(tempDir, findFramework(id));
+    };
+
+    it("explains an existing non-array reporter", async () => {
+      const outcome = await reasonFor("playwright.config.ts", "playwright", `export default defineConfig({ reporter: "html" });\n`);
+
+      expect(outcome.status).toBe("unrecognized-shape");
+      expect(outcome.reason).toContain("`reporter` is already set to something other than an array");
+    });
+
+    it("explains a missing config object", async () => {
+      const outcome = await reasonFor("playwright.config.ts", "playwright", `const config = makeConfig();\nexport default config;\n`);
+
+      expect(outcome.reason).toContain("couldn't find the exported config object");
+    });
+
+    it("explains a Cypress config without setupNodeEvents(on, config)", async () => {
+      const outcome = await reasonFor("cypress.config.ts", "cypress", `export default defineConfig({ e2e: {} });\n`);
+
+      expect(outcome.reason).toContain("setupNodeEvents(on, config)");
+    });
+  });
 });

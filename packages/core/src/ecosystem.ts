@@ -30,6 +30,8 @@ export interface ConfigPatchOutcome {
   status: "patched" | "already-configured" | "no-config-file" | "unsupported" | "unrecognized-shape";
   configPath?: string;
   note?: string;
+  /** Why the config was left untouched (set with `unrecognized-shape`), shown above the manual `setupHint`. */
+  reason?: string;
 }
 
 /**
