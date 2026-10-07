@@ -19,6 +19,22 @@ Java (Gradle) projects are supported too: `init --lang java` adds the official `
 
 Detected frameworks: Vitest, Playwright, Jest, Mocha, Cypress, Cucumber.js, Jasmine, CodeceptJS, Newman (Postman), and WebdriverIO (WDIO) for JS/TS; Behave, pytest, Pytest-BDD, and Robot Framework for Python.
 
+## allure-kit vs doing it by hand
+
+Setting Allure up manually is a handful of small steps, each with a way to go wrong *silently* — the tests run, the report is empty. These are the traps found by running the setup on real projects (the repository's end-to-end suite does exactly that, nightly):
+
+| By hand | What goes wrong | allure-kit |
+|---|---|---|
+| Pick the adapter package for your framework | Wrong or missing package; two adapters that clash (`allure-pytest` + `allure-pytest-bdd` both register `--alluredir`, pytest dies at startup) | Detects the framework from dependencies and config files and installs exactly the right adapter |
+| Register the reporter in the framework config | Names that look right and don't exist: Mocha takes `allure-mocha` (not `allure-mocha/reporter`), Jest `allure-jest/node`; Jasmine resolves `helpers` relative to `spec_dir`; an ES `import` in a CommonJS `cypress.config.js` is a `SyntaxError` | Patches the config with the verified names and syntax, shows a diff first (`--dry-run`), and says *why* when it backs off |
+| Write `allurerc` | Fields Allure rejects make every command fail (`unsupported fields`) | Generates it, edits it only with keys Allure accepts (`config`, `plugin`), and `doctor` flags the rest |
+| Versions | `allure-vitest` on Vitest 2 writes no results and no error; `allure-playwright` before 3.9 ignores the test plan on Playwright 1.60 | `doctor` knows the combinations that fail silently; `update` shows what changes before it does it |
+| History | History lives in the *awesome* report folder, needs `historyPath`, and has to survive between CI runs | `gh-pages init` / `gitlab init` set it up and cache it |
+| CI | Tests that fail abort the job before the report is built; Bitbucket drops artifacts of a failed step | `ci init` / `gh-pages init` / `gitlab init` build and keep the report even when tests fail, then fail the job |
+| Results directory | An adapter writing to `build/allure` while `allure generate` reads `allure-results` | `doctor` compares the two |
+
+None of this replaces reading the [Allure docs](https://allurereport.org/docs/); `init` prints the official page for each framework it configures. It just means you start from a setup that has been run end to end instead of one that merely looks right.
+
 ## How it works
 
 - **Framework detection** reads `package.json` dependencies (or, for Python, `requirements*.txt`/`pyproject.toml`/`Pipfile`) and looks for known test-framework config files (`playwright.config.ts`, `vitest.config.ts`, `wdio.conf.ts`, `pytest.ini`, `behave.ini`, etc.) to figure out which frameworks are actually in play, then maps each one to its Allure adapter package (e.g. `playwright` → `allure-playwright`, `pytest` → `allure-pytest`).
