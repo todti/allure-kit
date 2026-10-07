@@ -28,6 +28,8 @@ If you ran `allure-kit init` before this release, run `allure-kit doctor`: it no
 - `update --dry-run` and an `installed → latest` preview that flags major upgrades and skips packages that are already current.
 - A nightly end-to-end run (`npm run e2e`, `.github/workflows/e2e.yml`) that installs real frameworks and checks that `allure-results` appear, against pinned and latest versions; and a tag-triggered release workflow with npm provenance (see RELEASING.md).
 
+- `gh-pages init --pr-comments`: also runs on pull requests and comments the test summary via `allure-framework/allure-action`; PR runs aren't published to Pages and don't write the history cache.
+
 ### Changed
 - `gh-pages init`: the report is generated and published even when tests fail (the job fails afterwards) and history is cached between runs via `historyPath`.
 - Framework config patchers look keys up only among the direct properties of the config object (a lexical scanner instead of a 2000-character regex window) and refuse to insert next to a `...spread`.
