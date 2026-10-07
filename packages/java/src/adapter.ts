@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
+import { fileExists } from "@todti/allure-kit-core";
 import type {
   ConfigPatchOutcome,
   DetectedFramework,
@@ -11,6 +12,7 @@ import type {
 } from "@todti/allure-kit-core";
 
 import { detectBuildTool, findGradleBuildFile, type JavaBuildTool, readBuildText } from "./build-files.js";
+import { patchPom } from "./pom-patch.js";
 import { ALLURE_GRADLE_PLUGIN_ID, ALLURE_GRADLE_PLUGIN_VERSION, JAVA_FRAMEWORK_REGISTRY } from "./registry.js";
 
 const FRAMEWORK_MARKERS: Record<string, string[]> = {
@@ -38,18 +40,39 @@ const writeToDisk: FileWriter = async (filePath, content) => {
   await writeFile(filePath, content, "utf-8");
 };
 
+const patchMaven = async (cwd: string, write: FileWriter): Promise<ConfigPatchOutcome> => {
+  const pomPath = resolve(cwd, "pom.xml");
+  const propertiesPath = resolve(cwd, "src/test/resources/allure.properties");
+  const patched = patchPom(await readFile(pomPath, "utf-8"));
+
+  if ("reason" in patched) {
+    return {
+      status: patched.reason.includes("already references") ? "already-configured" : "unrecognized-shape",
+      configPath: pomPath,
+      reason: patched.reason,
+    };
+  }
+
+  await write(pomPath, patched.content);
+
+  if (!(await fileExists(propertiesPath))) {
+    await write(propertiesPath, "allure.results.directory=target/allure-results\n");
+  }
+
+  return {
+    status: "patched",
+    configPath: pomPath,
+    note: `Added ${patched.added.join(", ")}. Run mvn test, then build the report with: npx allure generate target/allure-results (needs Java 17+).`,
+  };
+};
+
 export const patchJavaBuild = async (
   cwd: string,
   _framework: FrameworkDescriptor,
   write: FileWriter = writeToDisk,
 ): Promise<ConfigPatchOutcome> => {
   if ((await detectBuildTool(cwd)) === "maven") {
-    return {
-      status: "unrecognized-shape",
-      configPath: resolve(cwd, "pom.xml"),
-      reason:
-        "pom.xml isn't patched automatically — Maven needs a BOM, the adapter dependency, the AspectJ agent in surefire and allure.properties",
-    };
+    return patchMaven(cwd, write);
   }
 
   const buildFile = await findGradleBuildFile(cwd);
