@@ -2,7 +2,7 @@
 // End-to-end check of the built CLI against real (temporary) projects with real npm installs:
 //   npm run build && node scripts/e2e.mjs
 // Used by .github/workflows/e2e.yml (nightly) so a broken release of allure, an adapter or a framework shows up here first.
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -227,6 +227,80 @@ pythonScenario({
     "test_sum.py": 'from pytest_bdd import given, scenarios\n\nscenarios("features/sum.feature")\n\n\n@given("a number")\ndef _():\n    pass\n',
   },
   command: ["pytest", "--alluredir=allure-results"],
+});
+
+// Newman has no config file to patch: `init` only installs newman-reporter-allure and the user adds `-r allure`.
+// A local server gives the collection a real request to run, so the scenario needs no network.
+scenario("newman: init installs the reporter and `-r allure` produces allure-results", (dir) => {
+  const port = 38000 + Math.floor(Math.random() * 1000);
+
+  write(dir, "package.json", JSON.stringify({ name: "e2e-newman", private: true, devDependencies: { newman: "^6.2.1" } }));
+  write(
+    dir,
+    "collection.json",
+    JSON.stringify({
+      info: { name: "e2e", schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+      item: [
+        {
+          name: "ping",
+          event: [{ listen: "test", script: { exec: ['pm.test("status is 200", () => pm.response.to.have.status(200));'] } }],
+          request: { method: "GET", url: `http://127.0.0.1:${port}/` },
+        },
+      ],
+    }),
+  );
+  run(dir, "npm", ["install", "--no-audit", "--no-fund"]);
+  kit(dir, "init", "--yes");
+  assert(existsSync(join(dir, "node_modules", "newman-reporter-allure")), "newman-reporter-allure was installed");
+
+  const server = spawn(
+    process.execPath,
+    ["-e", `require("node:http").createServer((req, res) => res.end("ok")).listen(${port}, "127.0.0.1")`],
+    { stdio: "ignore" },
+  );
+
+  try {
+    const deadline = Date.now() + 5000;
+
+    while (Date.now() < deadline) {
+      const probe = spawnSync(process.execPath, ["-e", `require("node:net").connect(${port}, "127.0.0.1").on("connect", () => process.exit(0)).on("error", () => process.exit(1))`]);
+
+      if (probe.status === 0) {
+        break;
+      }
+    }
+
+    run(dir, "npx", ["newman", "run", "collection.json", "-r", "allure"]);
+  } finally {
+    server.kill();
+  }
+
+  assert(existsSync(join(dir, "allure-results")), "allure-results were written");
+});
+
+// Cypress needs a ~200 MB binary we don't download here, so this checks what `init` can break without running a browser:
+// the patched config must still load as CommonJS and its setupNodeEvents must register the Allure hooks.
+scenario("cypress: init wires a CommonJS config that still loads", (dir) => {
+  write(dir, "package.json", JSON.stringify({ name: "e2e-cypress", private: true, devDependencies: { cypress: "^13.17.0" } }));
+  write(
+    dir,
+    "cypress.config.js",
+    'const { defineConfig } = require("cypress");\n\nmodule.exports = defineConfig({\n  e2e: {\n    setupNodeEvents(on, config) {\n      return config;\n    },\n  },\n});\n',
+  );
+  write(dir, "cypress/support/e2e.js", "// support\n");
+  spawnSync("npm", ["install", "--no-audit", "--no-fund"], { cwd: dir, env: { ...process.env, CYPRESS_INSTALL_BINARY: "0" }, encoding: "utf-8" });
+  kit(dir, "init", "--yes");
+  assert(readFileSync(join(dir, "cypress/support/e2e.js"), "utf-8").includes('import "allure-cypress"'), "the support file imports allure-cypress");
+
+  // Newer Node versions tolerate a stray `import` in a CommonJS file; Node 18/20 and Cypress' own loader may not.
+  assert(!/^import\s/m.test(readFileSync(join(dir, "cypress.config.js"), "utf-8")), "no ES import was injected into the CommonJS config");
+
+  const registered = run(dir, process.execPath, [
+    "-e",
+    'const events = []; const config = require("./cypress.config.js"); config.e2e.setupNodeEvents((name) => events.push(name), { env: {}, projectRoot: process.cwd() }); console.log(events.join(","));',
+  ]);
+
+  assert(/task|after:|before:/.test(registered.output), `setupNodeEvents registered Allure hooks (got ${JSON.stringify(registered.output)})`);
 });
 
 scenario("migrate: Allure 2 project to Allure 3", (dir) => {

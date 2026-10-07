@@ -363,7 +363,33 @@ const CYPRESS_SETUP_NODE_EVENTS_PATTERNS = [
 
 const CYPRESS_SUPPORT_FILE_CANDIDATES = ["cypress/support/e2e.ts", "cypress/support/e2e.js"];
 
-const patchCypressConfigFile = (text: string): string | null => {
+type ModuleStyle = "esm" | "cjs";
+
+/**
+ * Which `import` syntax is valid in this config: injecting an ES `import` into a CommonJS `cypress.config.js` throws
+ * `SyntaxError: Cannot use import statement outside a module` on Node versions without module-syntax detection.
+ */
+const detectModuleStyle = (text: string, configPath: string, packageType: unknown): ModuleStyle => {
+  if (/\.(ts|mts|mjs)$/.test(configPath)) {
+    return "esm";
+  }
+
+  if (configPath.endsWith(".cjs")) {
+    return "cjs";
+  }
+
+  if (/^\s*(import|export)\s/m.test(text)) {
+    return "esm";
+  }
+
+  if (/\brequire\(|\bmodule\.exports\b/.test(text)) {
+    return "cjs";
+  }
+
+  return packageType === "module" ? "esm" : "cjs";
+};
+
+const patchCypressConfigFile = (text: string, style: ModuleStyle): string | null => {
   let match: RegExpExecArray | null = null;
 
   for (const pattern of CYPRESS_SETUP_NODE_EVENTS_PATTERNS) {
@@ -383,8 +409,11 @@ const patchCypressConfigFile = (text: string): string | null => {
   const insertAt = match.index + match[0].length;
   let result = `${text.slice(0, insertAt)}\n      allureCypress(on, config);${text.slice(insertAt)}`;
 
-  if (!result.includes('from "allure-cypress/reporter"') && !result.includes("from 'allure-cypress/reporter'")) {
-    result = `import { allureCypress } from "allure-cypress/reporter";\n${result}`;
+  if (!/allure-cypress\/reporter/.test(result)) {
+    result =
+      style === "esm"
+        ? `import { allureCypress } from "allure-cypress/reporter";\n${result}`
+        : `const { allureCypress } = require("allure-cypress/reporter");\n${result}`;
   }
 
   return result;
@@ -412,7 +441,15 @@ const patchCypressFramework = async (
     return { status: "already-configured", configPath };
   }
 
-  const patchedConfig = patchCypressConfigFile(text);
+  let packageType: unknown;
+
+  try {
+    packageType = (JSON.parse(await readFile(resolve(cwd, "package.json"), "utf-8")) as { type?: unknown }).type;
+  } catch {
+    // no readable package.json: CommonJS is the Node default
+  }
+
+  const patchedConfig = patchCypressConfigFile(text, detectModuleStyle(text, configPath, packageType));
 
   if (patchedConfig === null) {
     return {

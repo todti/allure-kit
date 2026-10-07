@@ -742,4 +742,37 @@ describe("kit/config-patchers", () => {
       expect(await readFile(configPath, "utf-8")).toContain('plugins: { allure: { enabled: true, require: "allure-codeceptjs" } },');
     });
   });
+
+  describe("cypress module style", () => {
+    const cjsConfig = 'const { defineConfig } = require("cypress");\n\nmodule.exports = defineConfig({\n  e2e: {\n    setupNodeEvents(on, config) {\n      return config;\n    },\n  },\n});\n';
+
+    it("uses require() in a CommonJS cypress.config.js (an ES import is a SyntaxError there)", async () => {
+      await writeFile(join(tempDir, "cypress.config.js"), cjsConfig);
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("cypress"));
+      const text = await readFile(join(tempDir, "cypress.config.js"), "utf-8");
+
+      expect(outcome.status).toBe("patched");
+      expect(text).toContain('const { allureCypress } = require("allure-cypress/reporter");');
+      expect(text).not.toContain("import {");
+    });
+
+    it("uses import for an ESM project (type: module) and for .mjs / .ts configs", async () => {
+      await writeFile(join(tempDir, "package.json"), JSON.stringify({ type: "module" }));
+      await writeFile(join(tempDir, "cypress.config.js"), "export default {\n  e2e: {\n    setupNodeEvents(on, config) {},\n  },\n};\n");
+
+      await patchFrameworkConfig(tempDir, findFramework("cypress"));
+
+      expect(await readFile(join(tempDir, "cypress.config.js"), "utf-8")).toContain('import { allureCypress } from "allure-cypress/reporter";');
+    });
+
+    it("falls back to the package.json type when the file has neither syntax", async () => {
+      await writeFile(join(tempDir, "package.json"), JSON.stringify({ name: "x" }));
+      await writeFile(join(tempDir, "cypress.config.js"), "const config = {\n  e2e: {\n    setupNodeEvents(on, config) {},\n  },\n};\n");
+
+      await patchFrameworkConfig(tempDir, findFramework("cypress"));
+
+      expect(await readFile(join(tempDir, "cypress.config.js"), "utf-8")).toContain('require("allure-cypress/reporter")');
+    });
+  });
 });
