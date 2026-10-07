@@ -110,7 +110,7 @@ It also looks for combinations that fail silently: an adapter too old for the in
 Creates a GitHub Actions workflow that generates an Allure report and publishes it to GitHub Pages via the `gh-pages` branch. If the tests fail, the report is still generated and published, and the job fails afterwards. History is kept between runs by caching the `historyPath` file (`init` sets `historyPath: ./history.jsonl` in a JSON/YAML `allurerc` if it's missing; for an ESM config it prints a hint).
 
 ```bash
-allure-kit gh-pages init [--yes] [--branch <name>] [--config <path>] [--test-command <cmd>] [--cwd <path>]
+allure-kit gh-pages init [--lang js|ts|python] [--yes] [--branch <name>] [--config <path>] [--test-command <cmd>] [--cwd <path>]
 ```
 
 ### `gitlab init`
@@ -186,7 +186,7 @@ Python:
 
 Python package managers pip, [Poetry](https://python-poetry.org/), [PDM](https://pdm-project.org/), and [Pipenv](https://pipenv.pypa.io/) are auto-detected the same way as the npm-family managers. `pip install` doesn't update any manifest on its own, so when pip is the resolved manager `init` also appends the installed adapter(s) to `requirements.txt`.
 
-`doctor` works for Python projects too: it checks that each detected framework's adapter is declared in your dependencies (`requirements*.txt`, `pyproject.toml`, `Pipfile`) and reminds you that reports need the Node.js Allure CLI. `gh-pages init` and `gitlab init` are still JS/TS-only — they don't scaffold a Python CI workflow yet.
+`doctor` works for Python projects too: it checks that each detected framework's adapter is declared in your dependencies (`requirements*.txt`, `pyproject.toml`, `Pipfile`) and reminds you that reports need the Node.js Allure CLI. `gh-pages init` also scaffolds a Python workflow (`actions/setup-python`, the project's own installer, the framework's `--alluredir`/formatter command, Node for `npx allure generate`); `gitlab init` is still JS/TS-only.
 
 ## Report plugins
 

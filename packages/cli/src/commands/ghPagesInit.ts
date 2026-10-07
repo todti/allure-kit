@@ -19,7 +19,8 @@ import { detectPackageManager } from "@todti/allure-kit-npm";
 import { Command, Option } from "clipanion";
 import prompts from "prompts";
 
-import { getInstallCommand, getTestCommand } from "./ciShared.js";
+import { getInstallCommand, getPythonInstallCommand, getPythonTestCommand, getTestCommand } from "./ciShared.js";
+import { resolveEcosystem } from "../ecosystems.js";
 
 export { getInstallCommand, getTestCommand };
 
@@ -75,8 +76,21 @@ const buildWorkflowYaml = (params: {
   allureConfigPath?: string;
   testCommand: string;
   historyPath: string;
+  python?: boolean;
 }): string => {
-  const installCommand = getInstallCommand(params.packageManager);
+  const installCommand = params.python ? getPythonInstallCommand(params.packageManager) : getInstallCommand(params.packageManager);
+  const generateCommand = params.python ? "npx --yes allure generate" : "npx allure generate";
+  const setupSteps = params.python
+    ? `      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20.x"`
+    : `      - uses: actions/setup-node@v6
+        with:
+          node-version: "20.x"
+          cache: "${params.packageManager}"`;
   const cachePath = params.historyPath.replace(/^\.\//, "");
   const allureConfigArgument = params.allureConfigPath ? ` --config=${params.allureConfigPath}` : "";
 
@@ -99,10 +113,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: "20.x"
-          cache: "${params.packageManager}"
+${setupSteps}
       - name: Install dependencies
         run: ${installCommand}
       - name: Restore Allure history
@@ -114,7 +125,7 @@ jobs:
       - name: Run tests (produce allure-results)
         run: ${params.testCommand} || echo "TESTS_FAILED=1" >> "$GITHUB_ENV"
       - name: Generate Allure report
-        run: npx allure generate${allureConfigArgument} --output ./allure-report
+        run: ${generateCommand}${allureConfigArgument} --output ./allure-report
       - name: Save Allure history
         if: \${{ !cancelled() }}
         uses: actions/cache/save@v4
@@ -148,6 +159,10 @@ export class KitGhPagesInitCommand extends Command {
     ],
   });
 
+  lang = Option.String("--lang", {
+    description: "Project language: js, ts, or python (default: auto-detect)",
+  });
+
   yes = Option.Boolean("--yes,-y", false, {
     description: "Accept all defaults without prompts",
   });
@@ -176,9 +191,13 @@ export class KitGhPagesInitCommand extends Command {
 
     logStep("Preparing GitHub Pages workflow...");
 
-    const packageManager = await detectPackageManager(workingDir);
+    const ecosystem = await resolveEcosystem(workingDir, typeof this.lang === "string" ? this.lang : undefined);
+    const python = ecosystem.id !== "npm";
+    const packageManager = python ? await ecosystem.detectPackageManager(workingDir) : await detectPackageManager(workingDir);
     const defaultBranch = typeof this.defaultBranch === "string" ? this.defaultBranch : "main";
-    const defaultTestCommand = getTestCommand(packageManager);
+    const defaultTestCommand = python
+      ? getPythonTestCommand(packageManager, (await ecosystem.detectFrameworks(workingDir))[0]?.framework.id)
+      : getTestCommand(packageManager);
     const selectedTestCommand = typeof this.testCommand === "string" ? this.testCommand : defaultTestCommand;
 
     if (existsSync(targetWorkflowPath)) {
@@ -234,6 +253,7 @@ export class KitGhPagesInitCommand extends Command {
       allureConfigPath,
       testCommand: resolvedTestCommand,
       historyPath,
+      python,
     });
 
     const workflowsDir = resolve(workingDir, ".github", "workflows");
