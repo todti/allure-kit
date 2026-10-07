@@ -59,7 +59,7 @@ describe("kit/config", () => {
     await run(["config", "set", "resultsDir", "./res", "--cwd", dir]);
     await run(["config", "set", "flakyDetection.historyDepth", "10", "--cwd", dir]);
 
-    expect(await run(["config", "list", "--cwd", dir])).toBe('resultsDir = "./res"\nflakyDetection.historyDepth = 10\n');
+    expect(await run(["config", "list", "--cwd", dir])).toBe('name = "R"\nresultsDir = "./res"\nflakyDetection.historyDepth = 10\n');
   });
 
   it("unsets a key and drops an emptied parent object", async () => {
@@ -70,5 +70,13 @@ describe("kit/config", () => {
 
     expect(JSON.parse(await readFile(file(), "utf-8"))).toEqual({ name: "R", plugins: {} });
     expect(await run(["config", "unset", "resultsDir", "--cwd", dir])).toBe("");
+  });
+
+  it("handles the scalar options from the Allure 3 config reference", async () => {
+    await run(["config", "set", "appendHistory", "false", "--cwd", dir]);
+    await run(["config", "set", "historyLimit", "20", "--cwd", dir]);
+    await run(["config", "set", "output", "./out", "--cwd", dir]);
+
+    expect(await run(["config", "list", "--cwd", dir])).toBe('name = "R"\noutput = "./out"\nappendHistory = false\nhistoryLimit = 20\n');
   });
 });
