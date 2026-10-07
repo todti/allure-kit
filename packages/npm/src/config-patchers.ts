@@ -1,10 +1,8 @@
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
 
-import type { ConfigPatchOutcome, FileWriter, FrameworkDescriptor } from "@todti/allure-kit-core";
+import { type ConfigPatchOutcome, type FileWriter, type FrameworkDescriptor, findTopLevelProperty, hasTopLevelSpread } from "@todti/allure-kit-core";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
-
-import { findTopLevelProperty, hasTopLevelSpread } from "./js-scan.js";
 
 export type { ConfigPatchOutcome };
 

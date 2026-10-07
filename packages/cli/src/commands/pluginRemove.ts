@@ -13,10 +13,13 @@ import {
   logWarning,
   readAllureConfig,
   updateConfigPlugins,
+  removeMjsPlugin,
 } from "@todti/allure-kit-core";
 import { detectPackageManager, getRemoveCommand } from "@todti/allure-kit-npm";
 import { Command, Option } from "clipanion";
 import prompts from "prompts";
+
+import { editMjsConfig } from "../mjs-edit.js";
 
 export class KitPluginRemoveCommand extends Command {
   static paths = [["plugin", "remove"]];
@@ -48,8 +51,13 @@ export class KitPluginRemoveCommand extends Command {
     }
 
     if (existingConfig.format === "mjs") {
-      logWarning("Cannot auto-modify ESM config (allurerc.mjs).");
-      logHint(`Remove "${pluginId}" from your plugins section manually.`);
+      if (await editMjsConfig(workingDir, (source) => removeMjsPlugin(source, pluginId))) {
+        logSuccess(`Removed "${pluginId}" from ${existingConfig.path}`);
+      } else {
+        logWarning("Couldn't edit allurerc.mjs automatically (not a plain object literal, or no plugins block).");
+        logHint(`Remove "${pluginId}" from your plugins section manually.`);
+      }
+
       logNewLine();
       return;
     }
