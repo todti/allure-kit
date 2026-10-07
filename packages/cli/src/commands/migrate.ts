@@ -19,6 +19,7 @@ import {
 import { detectPackageManager, getInstallCommand, getRemoveCommand } from "@todti/allure-kit-npm";
 import { Command, Option } from "clipanion";
 
+import { migrateGradle, migratePom } from "../migrate-java.js";
 import { migrateScripts } from "../migrate-scripts.js";
 
 interface PackageJson {
@@ -32,7 +33,7 @@ export class KitMigrateCommand extends Command {
   static paths = [["migrate"]];
 
   static usage = Command.Usage({
-    description: "Migrate a JS/TS project from Allure 2 (allure-commandline) to Allure 3",
+    description: "Migrate a project from Allure 2 to Allure 3 (JS/TS: allure-commandline; Java: allure-junit5)",
     details:
       'Replaces the "allure-commandline" package with "allure", rewrites package.json scripts that use Allure 2 commands or flags ("allure serve", "--clean"), and creates an allurerc if there is none. Anything it can\'t rewrite safely is listed for manual review.',
     examples: [
@@ -45,6 +46,49 @@ export class KitMigrateCommand extends Command {
 
   cwd = Option.String("--cwd", { description: "Working directory (default: current directory)" });
 
+  /** Java builds: allure-junit5 → allure-jupiter. Returns false when the directory has no Maven/Gradle build file. */
+  private async migrateJava(workingDir: string, dryRun: boolean): Promise<boolean> {
+    const targets = [
+      { file: "pom.xml", migrate: migratePom },
+      { file: "build.gradle.kts", migrate: migrateGradle },
+      { file: "build.gradle", migrate: migrateGradle },
+    ];
+    let found = false;
+
+    for (const { file, migrate } of targets) {
+      let text: string;
+
+      try {
+        text = await readFile(resolve(workingDir, file), "utf-8");
+      } catch {
+        continue;
+      }
+
+      found = true;
+      logStep(file);
+
+      const { content, changes, warnings } = migrate(text);
+
+      if (changes.length === 0) {
+        logInfo("Nothing to migrate (no allure-junit5 artifacts)");
+      }
+
+      for (const change of changes) {
+        logInfo(`${dryRun ? "would change " : "changed "}${change}`);
+      }
+
+      if (changes.length > 0 && !dryRun) {
+        await writeFile(resolve(workingDir, file), content, "utf-8");
+      }
+
+      for (const warning of warnings) {
+        logWarning(warning);
+      }
+    }
+
+    return found;
+  }
+
   async execute() {
     const workingDir = typeof this.cwd === "string" ? this.cwd : processCwd();
     const dryRun = this.dryRun === true;
@@ -56,7 +100,11 @@ export class KitMigrateCommand extends Command {
     try {
       raw = await readFile(packageJsonPath, "utf-8");
     } catch {
-      logError("No package.json found — migrate supports JS/TS projects only.");
+      if (await this.migrateJava(workingDir, dryRun)) {
+        return;
+      }
+
+      logError("No package.json, pom.xml or build.gradle(.kts) found — nothing to migrate.");
 
       return;
     }

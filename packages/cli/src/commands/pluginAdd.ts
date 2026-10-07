@@ -16,10 +16,13 @@ import {
   readAllureConfig,
   REPORT_PLUGIN_REGISTRY,
   updateConfigPlugins,
+  addMjsPlugin,
 } from "@todti/allure-kit-core";
 import { detectPackageManager, getInstallCommand } from "@todti/allure-kit-npm";
 import { Command, Option } from "clipanion";
 import prompts from "prompts";
+
+import { editMjsConfig } from "../mjs-edit.js";
 
 const promptForOption = async (opt: PluginOptionDescriptor): Promise<unknown> => {
   const envHint = opt.envVar ? ` (env: ${opt.envVar})` : "";
@@ -186,7 +189,13 @@ export class KitPluginAddCommand extends Command {
     }
 
     if (existingConfig.format === "mjs") {
-      logWarning("Cannot auto-modify ESM config (allurerc.mjs).");
+      if (await editMjsConfig(workingDir, (source) => addMjsPlugin(source, pluginId, { options }))) {
+        logSuccess(`Added "${pluginId}" to ${existingConfig.path}`);
+        logNewLine();
+        return;
+      }
+
+      logWarning("Couldn't edit allurerc.mjs automatically (not a plain object literal, or the plugin is already listed).");
       logHint("Add this to your plugins section:");
       logHint(`  ${pluginId}: ${JSON.stringify({ options }, null, 2)}`);
       logNewLine();

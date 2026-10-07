@@ -149,3 +149,73 @@ export const findTopLevelProperty = (text: string, openIdx: number, key: string)
 
   return null;
 };
+
+/** True when the object literal opened at `openIdx` has a direct `...spread` member. */
+export const hasTopLevelSpread = (text: string, openIdx: number): boolean => {
+  let depth = 0;
+  let previous = "";
+  let i = openIdx;
+
+  while (i < text.length) {
+    const skipped = skipTrivia(text, i);
+
+    if (skipped !== i) {
+      previous = "x";
+      i = skipped;
+      continue;
+    }
+
+    const char = text[i];
+
+    if (/\s/.test(char)) {
+      i++;
+      continue;
+    }
+
+    if (depth === 1 && (previous === "{" || previous === ",") && text.startsWith("...", i)) {
+      return true;
+    }
+
+    if (OPENERS.has(char)) {
+      depth++;
+    } else if (CLOSERS.has(char)) {
+      depth--;
+
+      if (depth === 0) {
+        return false;
+      }
+    }
+
+    previous = char;
+    i++;
+  }
+
+  return false;
+};
+
+/** Index just past the value starting at `start`: a string/template literal, a bracketed block, or a bare token up to `,`/newline/closing bracket. */
+export const skipValue = (text: string, start: number): number => {
+  const skipped = skipTrivia(text, start);
+
+  if (skipped !== start) {
+    return skipped;
+  }
+
+  if (OPENERS.has(text[start])) {
+    const close = findMatchingBracket(text, start);
+
+    return close === null ? text.length : close + 1;
+  }
+
+  let end = start;
+
+  while (end < text.length && !",\n}])".includes(text[end])) {
+    end++;
+  }
+
+  while (end > start && /\s/.test(text[end - 1])) {
+    end--;
+  }
+
+  return end;
+};

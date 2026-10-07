@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { findMatchingBracket, findTopLevelProperty } from "../src/js-scan.js";
+import { findMatchingBracket, findTopLevelProperty, hasTopLevelSpread } from "../src/js-scan.js";
 
 const open = (text: string) => text.indexOf("{");
 
@@ -29,5 +29,12 @@ describe("npm/js-scan", () => {
 
     expect(findTopLevelProperty(text, open(text), "reporter")).not.toBeNull();
     expect(findTopLevelProperty(`{ myreporter: 1 }`, 0, "reporter")).toBeNull();
+  });
+
+  it("detects a direct spread but not one in a nested block, a string or a comment", () => {
+    expect(hasTopLevelSpread("{ ...base, runner: 'local' }", 0)).toBe(true);
+    expect(hasTopLevelSpread("{ a: 1,\n  ...base }", 0)).toBe(true);
+    expect(hasTopLevelSpread("{ nested: { ...base }, list: [...x], s: '...y' } // ...", 0)).toBe(false);
+    expect(hasTopLevelSpread("{ /* ...base */ a: 1 }", 0)).toBe(false);
   });
 });
