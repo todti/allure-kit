@@ -9,6 +9,7 @@ import {
   checkAllureCliGeneration,
   checkAllureJsVersionAlignment,
   checkFrameworkCaveats,
+  checkPlaywrightFullName,
   checkPluginImports,
   checkConfigCombinations,
   checkTestPlanEnv,
@@ -162,6 +163,22 @@ describe("kit/doctor-checks", () => {
 
       expect(findings).toHaveLength(1);
       expect(findings[0].message).toContain('Plugin "gone" imports ./nope.js');
+    });
+  });
+
+  describe("checkPlaywrightFullName", () => {
+    const wired = `reporter: [["allure-playwright"]]`;
+    const testops = JSON.stringify({ plugins: { testops: {} } });
+
+    it("hints about useLegacyFullName only for TestOps users with the default fullName", () => {
+      expect(checkPlaywrightFullName(wired, testops)).toHaveLength(1);
+      expect(checkPlaywrightFullName(wired, JSON.stringify({ plugins: { awesome: {} } }))).toEqual([]);
+      expect(checkPlaywrightFullName(wired, null)).toEqual([]);
+    });
+
+    it("is quiet once useLegacyFullName is set or the reporter isn't wired", () => {
+      expect(checkPlaywrightFullName(`reporter: [["allure-playwright", { useLegacyFullName: true }]]`, testops)).toEqual([]);
+      expect(checkPlaywrightFullName(`reporter: "html"`, testops)).toEqual([]);
     });
   });
 });
