@@ -130,3 +130,96 @@ export class KitConfigGetCommand extends Command {
     this.context.stdout.write(`${value === undefined ? "" : JSON.stringify(value)}\n`);
   }
 }
+
+const getByPath = (config: object, key: string): unknown =>
+  key.split(".").reduce<unknown>((node, segment) => (node as Record<string, unknown> | undefined)?.[segment], config);
+
+export class KitConfigListCommand extends Command {
+  static paths = [["config", "list"]];
+
+  static usage = Command.Usage({
+    description: "Print all supported Allure config options that are currently set",
+    examples: [["config list", "Show configured resultsDir, history and flakyDetection options"]],
+  });
+
+  cwd = Option.String("--cwd", {
+    description: "Working directory (default: current directory)",
+  });
+
+  async execute() {
+    const loaded = await loadEditableConfig(this.cwd ?? processCwd());
+
+    if (!loaded) {
+      return;
+    }
+
+    for (const key of CONFIG_KEYS) {
+      const value = getByPath(loaded.config, key);
+
+      if (value !== undefined) {
+        this.context.stdout.write(`${key} = ${JSON.stringify(value)}\n`);
+      }
+    }
+  }
+}
+
+export class KitConfigUnsetCommand extends Command {
+  static paths = [["config", "unset"]];
+
+  static usage = Command.Usage({
+    description: "Remove a top-level Allure config option",
+    examples: [["config unset flakyDetection.historyDepth", "Remove the option (an emptied parent object is removed too)"]],
+  });
+
+  key = Option.String({ required: true, name: "key" });
+
+  cwd = Option.String("--cwd", {
+    description: "Working directory (default: current directory)",
+  });
+
+  async execute() {
+    assertKnownKey(this.key);
+
+    const workingDir = this.cwd ?? processCwd();
+    const loaded = await loadEditableConfig(workingDir);
+
+    if (!loaded) {
+      return;
+    }
+
+    const path = this.key.split(".");
+    const last = path.pop()!;
+    const parents: Record<string, unknown>[] = [loaded.config];
+
+    for (const segment of path) {
+      const next = (parents[parents.length - 1] as Record<string, unknown>)[segment];
+
+      if (!next || typeof next !== "object") {
+        logWarning(`${this.key} is not set`);
+
+        return;
+      }
+
+      parents.push(next as Record<string, unknown>);
+    }
+
+    if (!(last in parents[parents.length - 1])) {
+      logWarning(`${this.key} is not set`);
+
+      return;
+    }
+
+    delete parents[parents.length - 1][last];
+
+    for (let depth = parents.length - 1; depth > 0; depth--) {
+      if (Object.keys(parents[depth]).length > 0) {
+        break;
+      }
+
+      delete parents[depth - 1][path[depth - 1]];
+    }
+
+    await writeAllureConfig(workingDir, loaded.config, loaded.format);
+    logSuccess(`Removed ${this.key}`);
+  }
+}

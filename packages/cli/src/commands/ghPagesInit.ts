@@ -19,31 +19,12 @@ import { detectPackageManager } from "@todti/allure-kit-npm";
 import { Command, Option } from "clipanion";
 import prompts from "prompts";
 
+import { getInstallCommand, getTestCommand } from "./ciShared.js";
+
+export { getInstallCommand, getTestCommand };
+
 const WORKFLOW_FILE_RELATIVE_PATH = join(".github", "workflows", "allure-gh-pages.yml");
 
-export const getInstallCommand = (packageManager: string): string => {
-  switch (packageManager) {
-    case "npm":
-      return "npm ci";
-    case "pnpm":
-      return "pnpm install --frozen-lockfile";
-    case "yarn":
-    default:
-      return "yarn install --immutable --immutable-cache --check-cache";
-  }
-};
-
-export const getTestCommand = (packageManager: string): string => {
-  switch (packageManager) {
-    case "npm":
-      return "npm test";
-    case "pnpm":
-      return "pnpm test";
-    case "yarn":
-    default:
-      return "yarn test";
-  }
-};
 
 const DEFAULT_HISTORY_PATH = "./history.jsonl";
 

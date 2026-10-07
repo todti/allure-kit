@@ -5,7 +5,12 @@ import { join } from "node:path";
 import { Cli } from "clipanion";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { KitConfigGetCommand, KitConfigSetCommand } from "../src/commands/config.js";
+import {
+  KitConfigGetCommand,
+  KitConfigListCommand,
+  KitConfigSetCommand,
+  KitConfigUnsetCommand,
+} from "../src/commands/config.js";
 
 const run = async (args: string[]) => {
   const cli = new Cli();
@@ -13,6 +18,8 @@ const run = async (args: string[]) => {
 
   cli.register(KitConfigSetCommand);
   cli.register(KitConfigGetCommand);
+  cli.register(KitConfigListCommand);
+  cli.register(KitConfigUnsetCommand);
   await cli.run(args, { stdout: { write: (s: string) => ((out += s), true) } } as never);
 
   return out;
@@ -46,5 +53,22 @@ describe("kit/config", () => {
 
     expect(await run(["config", "get", "historyBaseUrl", "--cwd", dir])).toBe('"https://x/history.jsonl"\n');
     expect(await run(["config", "set", "bogus", "1", "--cwd", dir])).toMatch(/Unknown config key/);
+  });
+
+  it("lists only options that are set", async () => {
+    await run(["config", "set", "resultsDir", "./res", "--cwd", dir]);
+    await run(["config", "set", "flakyDetection.historyDepth", "10", "--cwd", dir]);
+
+    expect(await run(["config", "list", "--cwd", dir])).toBe('resultsDir = "./res"\nflakyDetection.historyDepth = 10\n');
+  });
+
+  it("unsets a key and drops an emptied parent object", async () => {
+    await run(["config", "set", "resultsDir", "./res", "--cwd", dir]);
+    await run(["config", "set", "flakyDetection.historyDepth", "10", "--cwd", dir]);
+    await run(["config", "unset", "flakyDetection.historyDepth", "--cwd", dir]);
+    await run(["config", "unset", "resultsDir", "--cwd", dir]);
+
+    expect(JSON.parse(await readFile(file(), "utf-8"))).toEqual({ name: "R", plugins: {} });
+    expect(await run(["config", "unset", "resultsDir", "--cwd", dir])).toBe("");
   });
 });

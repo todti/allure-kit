@@ -118,13 +118,15 @@ Creates a GitLab CI job (`.gitlab/allure-report.gitlab-ci.yml`, included from `.
 allure-kit gitlab init [--yes] [--image <image>] [--config <path>] [--test-command <cmd>] [--cwd <path>]
 ```
 
-### `config get` / `config set`
+### `config get` / `config set` / `config list` / `config unset`
 
-Read or write top-level `allurerc` options (`resultsDir`, `historyPath`, `historyBaseUrl`, `knownIssuesPath`, `flakyDetection.historyDepth`, `flakyDetection.includePassedTests`). JSON/YAML configs only.
+Read, write, list or remove top-level `allurerc` options (`resultsDir`, `historyPath`, `historyBaseUrl`, `knownIssuesPath`, `flakyDetection.historyDepth`, `flakyDetection.includePassedTests`). JSON/YAML configs only.
 
 ```bash
 allure-kit config set flakyDetection.historyDepth 10
 allure-kit config get resultsDir
+allure-kit config list      # only options that are set
+allure-kit config unset flakyDetection.historyDepth
 ```
 
 ### `plugin list`
