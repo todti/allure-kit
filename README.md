@@ -39,6 +39,10 @@ Use without installing:
 npx allure-kit --help
 ```
 
+## Machine-readable output
+
+For scripts and AI agents: add `--json` to `init`, `demo`, `migrate`, `update`, `ci init`, `gh-pages init`, `gitlab init`, `plugin add` or `plugin remove` and nothing is printed except one JSON document, `{ "command": [...], "ok": true, "messages": [{ "level": "success", "message": "..." }], "error": "..." }` (levels: `success`, `info`, `warning`, `error`, `step`, `hint`, `text`; `error` is set for usage errors; the exit code is unchanged). Run such commands with `--yes` so nothing waits for input. `doctor` has its own `--json` (every check with its step, level, message and hint), and `--strict` for a non-zero exit code.
+
 ## Quick Start
 
 ```bash

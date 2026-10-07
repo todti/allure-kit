@@ -1,10 +1,17 @@
-import * as console from "node:console";
 import { existsSync, mkdirSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { cwd as processCwd } from "node:process";
 
-import { logHint, logInfo, logNewLine, logStep, logSuccess, logWarning } from "@todti/allure-kit-core";
+import {
+  logHint,
+  logInfo,
+  logNewLine,
+  logStep,
+  logSuccess,
+  logWarning,
+  print,
+} from "@todti/allure-kit-core";
 import { detectPackageManager } from "@todti/allure-kit-npm";
 import { Command, Option, UsageError } from "clipanion";
 import prompts from "prompts";
@@ -88,7 +95,7 @@ export class KitGitlabInitCommand extends Command {
     const jobPath = resolve(workingDir, JOB_FILE);
     const ciPath = resolve(workingDir, CI_FILE);
 
-    console.log("\n  Allure GitLab CI Setup\n");
+    print("\n  Allure GitLab CI Setup\n");
 
     const ecosystem = await resolveEcosystem(workingDir, str(this.lang));
 

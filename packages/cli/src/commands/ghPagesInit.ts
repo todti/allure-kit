@@ -1,4 +1,3 @@
-import * as console from "node:console";
 import { existsSync, mkdirSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -12,6 +11,7 @@ import {
   logStep,
   logSuccess,
   logWarning,
+  print,
   readAllureConfig,
   writeAllureConfig,
 } from "@todti/allure-kit-core";
@@ -187,7 +187,7 @@ export class KitGhPagesInitCommand extends Command {
     const workingDir = typeof this.cwd === "string" ? this.cwd : processCwd();
     const targetWorkflowPath = resolve(workingDir, WORKFLOW_FILE_RELATIVE_PATH);
 
-    console.log("\n  Allure GitHub Pages Setup\n");
+    print("\n  Allure GitHub Pages Setup\n");
 
     logStep("Preparing GitHub Pages workflow...");
 

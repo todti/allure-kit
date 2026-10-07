@@ -22,6 +22,7 @@ If you ran `allure-kit init` before this release, run `allure-kit doctor`: it no
 - `doctor --json` / `--strict`, and `doctor` for Python and Java projects (`--lang`).
 - `init --dry-run` (install command, a diff of every file it would change, the `allurerc` it would create), `init` prints the official configuration page of each framework, explains why a config was left untouched, and points at monorepo workspace packages.
 - `demo`: writes a minimal passing test for each detected framework (Vitest, Jest, Mocha, Playwright, Jasmine, Cucumber.js, pytest, Pytest-BDD, Behave, Robot Framework, JUnit 5) and prints how to run it; the end-to-end suite builds its tests with it.
+- `--json` for `init`, `demo`, `migrate`, `update`, `ci init`, `gh-pages init`, `gitlab init`, `plugin add|remove`: one JSON document with the command's messages instead of colored text (for scripts and AI agents).
 - `migrate`: JS/TS from Allure 2 (`allure-commandline`, `allure serve`, `--clean`) and Java (`allure-junit5` → `allure-jupiter`).
 - `ci init <circleci|jenkins|azure|bitbucket>`; `gitlab init` (JS/TS and Python); `gh-pages init` supports Python.
 - `config get|set|list|unset` (`name`, `output`, `resultsDir`, `historyPath`, `appendHistory`, `historyLimit`, `historyBaseUrl`, `knownIssuesPath`, `environment`, `port`, `flakyDetection.*`); `config set/unset` and `plugin add/remove` now edit a literal-object `allurerc.mjs` in place.

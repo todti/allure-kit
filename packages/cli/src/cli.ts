@@ -23,6 +23,7 @@ import {
   KitPluginRemoveCommand,
   KitUpdateCommand,
 } from "./commands/index.js";
+import { runJson, wantsJson } from "./json-mode.js";
 
 const [, , ...args] = argv;
 
@@ -57,4 +58,11 @@ cli.register(KitConfigUnsetCommand);
 cli.register(Builtins.HelpCommand);
 cli.register(Builtins.VersionCommand);
 
-cli.runExit(args);
+if (wantsJson(args)) {
+  void runJson(cli, args).then(({ exitCode, result }) => {
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    process.exitCode = exitCode;
+  });
+} else {
+  cli.runExit(args);
+}
