@@ -1,5 +1,5 @@
 import * as console from "node:console";
-import { access } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { cwd as processCwd } from "node:process";
 
@@ -24,6 +24,16 @@ import {
 } from "@todti/allure-kit-npm";
 import { Command, Option } from "clipanion";
 
+import {
+  checkAdapterCompat,
+  checkAllureCliGeneration,
+  checkAllureJsVersionAlignment,
+  checkFrameworkCaveats,
+  checkConfigCombinations,
+  checkTestPlanEnv,
+  type DoctorFinding,
+} from "../doctor-checks.js";
+
 const moduleExists = async (moduleName: string, cwd: string): Promise<boolean> => {
   try {
     const modulePath = resolve(cwd, "node_modules", moduleName);
@@ -36,40 +46,106 @@ const moduleExists = async (moduleName: string, cwd: string): Promise<boolean> =
   }
 };
 
+type CheckLevel = "success" | "info" | "warning" | "error";
+
+interface CheckEntry {
+  step: string;
+  level: CheckLevel;
+  message: string;
+  hint?: string;
+}
+
+const LOGGERS: Record<CheckLevel, (message: string) => void> = {
+  success: logSuccess,
+  info: logInfo,
+  warning: logWarning,
+  error: logError,
+};
+
+/** Collects every check result; prints as it goes unless the output is JSON. */
+const createReporter = (json: boolean) => {
+  const entries: CheckEntry[] = [];
+  let currentStep = "";
+
+  return {
+    entries,
+    step(message: string) {
+      currentStep = message.replace(/\.\.\.$/, "");
+
+      if (!json) {
+        logStep(message);
+      }
+    },
+    add(level: CheckLevel, message: string) {
+      entries.push({ step: currentStep, level, message });
+
+      if (!json) {
+        LOGGERS[level](message);
+      }
+    },
+    hint(message: string) {
+      const last = entries[entries.length - 1];
+
+      if (last) {
+        last.hint = message;
+      }
+
+      if (!json) {
+        logHint(message);
+      }
+    },
+  };
+};
+
 export class KitDoctorCommand extends Command {
   static paths = [["doctor"]];
 
   static usage = Command.Usage({
     description: "Diagnose your Allure 3 configuration",
-    examples: [["doctor", "Run all diagnostic checks"]],
+    examples: [
+      ["doctor", "Run all diagnostic checks"],
+      ["doctor --json --strict", "Machine-readable output; non-zero exit code when issues are found"],
+    ],
   });
 
   cwd = Option.String("--cwd", {
     description: "Working directory (default: current directory)",
   });
 
+  json = Option.Boolean("--json", false, {
+    description: "Print the results as JSON instead of text",
+  });
+
+  strict = Option.Boolean("--strict", false, {
+    description: "Exit with code 1 when issues are found",
+  });
+
   async execute() {
     const workingDir = this.cwd ?? processCwd();
     let issuesFound = 0;
 
-    console.log("\n  Allure Doctor\n");
+    const report = createReporter(this.json === true);
 
-    logStep("Checking environment...");
+    if (this.json !== true) {
+      console.log("\n  Allure Doctor\n");
+    }
+
+    report.step("Checking environment...");
 
     const packageManager = await detectPackageManager(workingDir);
 
-    logSuccess(`Package manager: ${packageManager}`);
+    report.add("success", `Package manager: ${packageManager}`);
 
-    logStep("Checking config file...");
+    report.step("Checking config file...");
 
     const existingConfig = await findExistingConfig(workingDir);
 
     if (!existingConfig) {
-      logError("No allurerc config file found");
-      logHint("Run 'allure-kit init' to create one");
+      report.add("error", "No allurerc config file found");
+      report.hint("Run 'allure-kit init' to create one");
       issuesFound++;
     } else {
-      logSuccess(`Config found: ${existingConfig.path} (${existingConfig.format})`);
+      report.add("success", `Config found: ${existingConfig.path} (${existingConfig.format})`);
 
       const config = await readAllureConfig(workingDir);
 
@@ -77,65 +153,65 @@ export class KitDoctorCommand extends Command {
         const pluginCount = Object.keys(config.plugins ?? {}).length;
 
         if (pluginCount === 0) {
-          logWarning("No plugins configured (the 'awesome' plugin will be used by default)");
+          report.add("warning", "No plugins configured (the 'awesome' plugin will be used by default)");
         } else {
-          logSuccess(`${pluginCount} plugin(s) configured`);
+          report.add("success", `${pluginCount} plugin(s) configured`);
         }
 
         if (config.output) {
-          logInfo(`Output directory: ${config.output}`);
+          report.add("info", `Output directory: ${config.output}`);
         }
       } else if (existingConfig.format === "mjs") {
-        logInfo("ESM config detected — skipping content validation (dynamic imports are not analyzed)");
+        report.add("info", "ESM config detected — skipping content validation (dynamic imports are not analyzed)");
       }
     }
 
-    logStep("Checking test framework adapters...");
+    report.step("Checking test framework adapters...");
 
     const detectedFrameworks = await detectFrameworks(workingDir);
 
     if (detectedFrameworks.length === 0) {
-      logWarning("No test frameworks detected in package.json");
+      report.add("warning", "No test frameworks detected in package.json");
     } else {
       for (const { framework } of detectedFrameworks) {
         const adapterInstalled = await moduleExists(framework.adapterPackage, workingDir);
 
         if (!adapterInstalled) {
-          logError(`${framework.displayName} detected but ${framework.adapterPackage} is not installed`);
-          logHint(`Run: allure-kit init or install ${framework.adapterPackage} manually`);
+          report.add("error", `${framework.displayName} detected but ${framework.adapterPackage} is not installed`);
+          report.hint(`Run: allure-kit init or install ${framework.adapterPackage} manually`);
           issuesFound++;
           continue;
         }
 
-        logSuccess(`${framework.displayName} → ${framework.adapterPackage} installed`);
+        report.add("success", `${framework.displayName} → ${framework.adapterPackage} installed`);
 
         const wiring = await checkFrameworkWiring(workingDir, framework);
 
         if (wiring === "wired") {
-          logSuccess(`${framework.displayName} reporter is wired into its config`);
+          report.add("success", `${framework.displayName} reporter is wired into its config`);
         } else if (wiring === "not-wired") {
-          logError(`${framework.displayName} adapter is installed but the reporter isn't wired into its config`);
-          logHint(framework.setupHint);
+          report.add("error", `${framework.displayName} adapter is installed but the reporter isn't wired into its config`);
+          report.hint(framework.setupHint);
           issuesFound++;
         } else if (wiring === "no-config-file") {
-          logWarning(`${framework.displayName} config file not found — can't verify the reporter is wired`);
+          report.add("warning", `${framework.displayName} config file not found — can't verify the reporter is wired`);
         }
       }
     }
 
-    logStep("Checking Allure CLI...");
+    report.step("Checking Allure CLI...");
 
     const allureCliInstalled = await moduleExists("allure", workingDir);
 
     if (allureCliInstalled) {
-      logSuccess("allure CLI package is installed");
+      report.add("success", "allure CLI package is installed");
     } else {
-      logError("allure CLI package is not installed");
-      logHint("Run: allure-kit init");
+      report.add("error", "allure CLI package is not installed");
+      report.hint("Run: allure-kit init");
       issuesFound++;
     }
 
-    logStep("Checking installed plugin packages...");
+    report.step("Checking installed plugin packages...");
 
     const config = await readAllureConfig(workingDir);
 
@@ -146,15 +222,43 @@ export class KitDoctorCommand extends Command {
         const isInstalled = await moduleExists(packageName, workingDir);
 
         if (isInstalled) {
-          logSuccess(`Plugin package ${packageName} is installed`);
+          report.add("success", `Plugin package ${packageName} is installed`);
         } else {
-          logWarning(`Plugin "${pluginId}" is in config but ${packageName} may not be installed`);
-          logHint("The allure CLI bundles built-in plugins, so this might be fine");
+          report.add("warning", `Plugin "${pluginId}" is in config but ${packageName} may not be installed`);
+          report.hint("The allure CLI bundles built-in plugins, so this might be fine");
         }
       }
     }
 
-    logStep("Checking for unused adapters...");
+    report.step("Checking compatibility...");
+
+    const compatFindings = [
+      ...(await checkAdapterCompat(workingDir)),
+      ...(await checkAllureCliGeneration(workingDir)),
+      ...(await checkAllureJsVersionAlignment(workingDir)),
+      ...(existingConfig ? checkConfigCombinations(await readFile(existingConfig.path, "utf-8")) : []),
+      ...(await checkTestPlanEnv(process.env, workingDir)),
+      ...checkFrameworkCaveats(detectedFrameworks.map(({ framework }) => framework.id)),
+    ];
+
+    if (compatFindings.length === 0) {
+      report.add("success", "No compatibility problems found");
+    } else {
+
+      for (const { level, message, hint } of compatFindings) {
+        report.add(level, message);
+
+        if (hint) {
+          report.hint(hint);
+        }
+
+        if (level === "error") {
+          issuesFound++;
+        }
+      }
+    }
+
+    report.step("Checking for unused adapters...");
 
     const allurePackages = await detectInstalledAllurePackages(workingDir);
     const adapterPackages = allurePackages.filter((pkg) =>
@@ -168,21 +272,27 @@ export class KitDoctorCommand extends Command {
         const frameworkDetected = detectedFrameworks.some((detected) => detected.framework.id === matchingFramework.id);
 
         if (!frameworkDetected) {
-          logWarning(
+          report.add("warning", 
             `${adapterPkg.name} is installed but ${matchingFramework.packageName} was not found in dependencies`,
           );
         }
       }
     }
 
-    logNewLine();
-
-    if (issuesFound === 0) {
-      logSuccess("No issues found. Your Allure setup looks good!");
+    if (this.json === true) {
+      this.context.stdout.write(`${JSON.stringify({ ok: issuesFound === 0, issues: issuesFound, checks: report.entries }, null, 2)}\n`);
     } else {
-      logWarning(`Found ${issuesFound} issue(s). See above for details.`);
+      logNewLine();
+
+      if (issuesFound === 0) {
+        logSuccess("No issues found. Your Allure setup looks good!");
+      } else {
+        logWarning(`Found ${issuesFound} issue(s). See above for details.`);
+      }
+
+      logNewLine();
     }
 
-    logNewLine();
+    return this.strict === true && issuesFound > 0 ? 1 : 0;
   }
 }

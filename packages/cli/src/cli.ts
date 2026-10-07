@@ -6,7 +6,9 @@ import { Builtins, Cli } from "clipanion";
 
 import {
   KitConfigGetCommand,
+  KitConfigListCommand,
   KitConfigSetCommand,
+  KitConfigUnsetCommand,
   KitDefaultCommand,
   KitDoctorCommand,
   KitGhPagesInitCommand,
@@ -43,6 +45,8 @@ cli.register(KitPluginRemoveCommand);
 cli.register(KitPluginListCommand);
 cli.register(KitConfigSetCommand);
 cli.register(KitConfigGetCommand);
+cli.register(KitConfigListCommand);
+cli.register(KitConfigUnsetCommand);
 
 cli.register(Builtins.HelpCommand);
 cli.register(Builtins.VersionCommand);

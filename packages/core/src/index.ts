@@ -5,3 +5,4 @@ export * from "./config-io.js";
 export * from "./ui.js";
 export * from "./registry.js";
 export * from "./templates/allurerc.js";
+export * from "./diff.js";

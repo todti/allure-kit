@@ -23,6 +23,9 @@ export interface DetectedFramework {
   version: string;
 }
 
+/** Writes a file (creating parent directories). `init --dry-run` swaps in a recorder instead of touching disk. */
+export type FileWriter = (filePath: string, content: string) => Promise<void>;
+
 export interface ConfigPatchOutcome {
   status: "patched" | "already-configured" | "no-config-file" | "unsupported" | "unrecognized-shape";
   configPath?: string;
@@ -61,5 +64,5 @@ export interface EcosystemAdapter<PackageManager extends string = string> {
    * safe mechanical patch for a given config shape (or without this hook at all) fall back to
    * the framework's `setupHint` printed as a manual step.
    */
-  patchFrameworkConfig?(cwd: string, framework: FrameworkDescriptor): Promise<ConfigPatchOutcome>;
+  patchFrameworkConfig?(cwd: string, framework: FrameworkDescriptor, write?: FileWriter): Promise<ConfigPatchOutcome>;
 }

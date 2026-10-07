@@ -9,7 +9,7 @@ import { detectPackageManager } from "@todti/allure-kit-npm";
 import { Command, Option } from "clipanion";
 import prompts from "prompts";
 
-import { getInstallCommand, getTestCommand } from "./ghPagesInit.js";
+import { getInstallCommand, getTestCommand } from "./ciShared.js";
 
 const CI_FILE = ".gitlab-ci.yml";
 const JOB_FILE = join(".gitlab", "allure-report.gitlab-ci.yml");

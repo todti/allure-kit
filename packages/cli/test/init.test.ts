@@ -21,6 +21,10 @@ vi.mock("../../npm/src/detect-package-manager.js", async () => {
   };
 });
 
+const logMock = vi.fn();
+
+vi.mock("node:console", () => ({ log: (...args: unknown[]) => logMock(...args) }));
+
 vi.mock("../../core/src/exec.js", () => ({
   executeCommand: vi.fn(),
 }));
@@ -158,5 +162,29 @@ describe("kit/init", () => {
     expect(executeCommand).toHaveBeenCalledTimes(1);
     const [installCommand] = vi.mocked(executeCommand).mock.calls[0];
     expect(installCommand).toBe("npm install --save-dev allure");
+  });
+
+  it("should not install, patch or write anything under --dry-run, and show the planned changes", async () => {
+    const configText = `export default defineConfig({\n  testDir: "./tests",\n});\n`;
+
+    await writeFile(join(tempDir, "package.json"), JSON.stringify({ devDependencies: { "@playwright/test": "^1.50.0" } }));
+    await writeFile(join(tempDir, "playwright.config.ts"), configText);
+
+    const command = new KitInitCommand();
+    command.cwd = tempDir;
+    command.framework = "playwright";
+    command.dryRun = true;
+
+    await command.execute();
+
+    const output = logMock.mock.calls.map((call) => call.join(" ")).join("\n");
+
+    expect(executeCommand).not.toHaveBeenCalled();
+    expect(await fileExists(join(tempDir, "allurerc.json"))).toBe(false);
+    expect(await readFile(join(tempDir, "playwright.config.ts"), "utf-8")).toBe(configText);
+    expect(output).toContain("would run:");
+    expect(output).toContain("allure-playwright");
+    expect(output).toContain('+   reporter: [["allure-playwright"]]');
+    expect(output).toContain("would create allurerc.json");
   });
 });
