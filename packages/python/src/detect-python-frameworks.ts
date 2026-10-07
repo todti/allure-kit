@@ -245,7 +245,15 @@ export const detectPythonFrameworks = async (cwd: string): Promise<DetectedFrame
 
   // allure-pytest-bdd is a complete pytest plugin of its own and registers the same --alluredir option as
   // allure-pytest, so installing both makes pytest fail at startup: a Pytest-BDD project gets only the BDD adapter.
-  return detected.some((entry) => entry.framework.id === "pytest-bdd")
-    ? detected.filter((entry) => entry.framework.id !== "pytest")
-    : detected;
+  if (!detected.some((entry) => entry.framework.id === "pytest-bdd")) {
+    return detected;
+  }
+
+  // Pytest-BDD keeps its scenarios in `features/*.feature` too, which looks like Behave on file layout alone: only a
+  // declared behave dependency counts as Behave in such a project.
+  return detected.filter(
+    (entry) =>
+      entry.framework.id !== "pytest" &&
+      !(entry.framework.id === "behave" && (entry.source === "test-files" || entry.source === "config-file")),
+  );
 };

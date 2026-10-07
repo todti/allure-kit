@@ -11,6 +11,7 @@ import {
   KitConfigSetCommand,
   KitConfigUnsetCommand,
   KitDefaultCommand,
+  KitDemoCommand,
   KitDoctorCommand,
   KitGhPagesInitCommand,
   KitGitlabInitCommand,
@@ -37,6 +38,7 @@ const cli = new Cli({
 
 cli.register(KitDefaultCommand);
 cli.register(KitInitCommand);
+cli.register(KitDemoCommand);
 cli.register(KitUpdateCommand);
 cli.register(KitDoctorCommand);
 cli.register(KitGhPagesInitCommand);

@@ -55,6 +55,20 @@ describe("kit/detect-python-frameworks", () => {
       expect(ids).toContain("robotframework");
     });
 
+    it("should not mistake a Pytest-BDD project's features/*.feature files for Behave", async () => {
+      await writeFile(join(tempDir, "requirements.txt"), "pytest-bdd==8.1.0\n");
+      await mkdir(join(tempDir, "features"), { recursive: true });
+      await writeFile(join(tempDir, "features", "a.feature"), "Feature: a\n");
+
+      expect((await detectPythonFrameworks(tempDir)).map((d) => d.framework.id)).toEqual(["pytest-bdd"]);
+    });
+
+    it("should still report Behave when behave is declared next to pytest-bdd", async () => {
+      await writeFile(join(tempDir, "requirements.txt"), "pytest-bdd==8.1.0\nbehave==1.2.6\n");
+
+      expect((await detectPythonFrameworks(tempDir)).map((d) => d.framework.id).sort()).toEqual(["behave", "pytest-bdd"]);
+    });
+
     it("should keep pytest when pytest-bdd is absent", async () => {
       await writeFile(join(tempDir, "requirements.txt"), "pytest==8.0.0\nrobotframework==7.0\n");
 

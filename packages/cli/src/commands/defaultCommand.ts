@@ -22,6 +22,7 @@ const COMMANDS = [
     name: "init",
     description: "Initialize Allure 3 in your project (auto-detects frameworks)",
   },
+  { name: "demo", description: "Create a minimal passing test to see an Allure report straight away" },
   { name: "gh-pages init", description: "Create GitHub Pages workflow for publishing Allure report" },
   { name: "gitlab init", description: "Create a GitLab CI job that builds and publishes the Allure report" },
   { name: "ci init <provider>", description: "Create a CI pipeline for CircleCI, Jenkins, Azure Pipelines or Bitbucket" },

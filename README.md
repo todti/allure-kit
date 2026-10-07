@@ -77,7 +77,7 @@ Allure 3's report generator (`allure generate`) is a Node.js CLI regardless of t
 allure-kit init [--lang js|ts|python] [--framework <id>] [--format json|yaml|mjs] [--yes] [--dry-run] [--cwd <path>]
 ```
 
-Detects test frameworks (by dependencies, config files, and existing tests), installs matching adapters, and creates an `allurerc` config. After wiring, `init` prints the official Allure configuration page for each selected framework (adapter options and examples). `init` does **not** generate any demo tests — it only configures Allure. Sample tests live in a separate repository.
+Detects test frameworks (by dependencies, config files, and existing tests), installs matching adapters, and creates an `allurerc` config. After wiring, `init` prints the official Allure configuration page for each selected framework (adapter options and examples). `init` does **not** generate any tests — it only configures Allure; run `allure-kit demo` afterwards if you want a minimal passing test to see a report right away.
 
 Flags:
 - `--lang` — project language: `js`/`ts` (treated the same) or `python`/`py`. Without this flag, `init` auto-detects: `package.json` present → JS/TS, otherwise a Python manifest (`pyproject.toml`, `requirements*.txt`, `Pipfile`, `setup.py`/`setup.cfg`) present → Python, otherwise defaults to JS/TS.
@@ -118,6 +118,14 @@ Checks: package manager detection, `allurerc` presence and validity, adapter pac
 It also looks for combinations that fail silently: an adapter too old for the installed framework (currently `allure-playwright` < 3.9.0 with Playwright ≥ 1.60, where selective test-plan runs stop working), `allure-js` adapters on a different minor version than `allure-js-commons`, `qualityGate` combined with `historyPath` (known upstream issue [allure3#895](https://github.com/allure-framework/allure3/issues/895)), an `ALLURE_TESTPLAN_PATH` that points to a missing or invalid file, a custom plugin `import` that points to a missing local file, a GitHub workflow using `allure-framework/allure-action` without `pull-requests: write` / `checks: write` permissions or a `github-token` input (the step runs but nothing shows up on the PR), `allure-vitest` ≥ 3.13 on Vitest < 3 (it silently writes no results — reproduced in a clean project), an `allure` package older than v3 or `allure-commandline` (Allure 2) installed next to it. For TestOps users it hints at `useLegacyFullName: true` for `allure-playwright` (the default `fullName` is `file:line:column` and shifts when a test moves, so test-plan runs drop it). It also lists known adapter limitations for the detected frameworks (no retry marking in Jest/Vitest, no test-plan support in CodeceptJS/Newman, Newman not writing `environmentInfo`/`categories`).
 
 `--json` prints every check (step, level, message, hint) as JSON for CI and scripts; `--strict` makes the command exit with code 1 when issues are found.
+
+### `demo`
+
+```bash
+allure-kit demo [--framework <id>] [--lang js|ts|python|java] [--force] [--dry-run] [--cwd <path>]
+```
+
+Writes one tiny passing test for each detected framework (or the one given with `--framework`), named so that the framework finds it by default, and prints how to run it and build the report. Existing files are never overwritten without `--force`. Templates exist for Vitest, Jest, Mocha, Playwright, Jasmine, Cucumber.js, pytest, Pytest-BDD, Behave, Robot Framework and JUnit 5 — the same tests the end-to-end suite runs.
 
 ### `gh-pages init`
 
