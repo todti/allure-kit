@@ -1,0 +1,30 @@
+name: e2e
+
+# Runs the built CLI against real temporary projects with real npm installs (scripts/e2e.mjs).
+# Nightly, so a broken release of allure, an adapter or a test framework shows up here before users hit it.
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # "pinned" uses the version ranges in scripts/e2e.mjs; "latest" installs the newest release of every framework.
+        versions: [pinned, latest]
+    env:
+      E2E_LATEST: ${{ matrix.versions == 'latest' && '1' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+      - run: npm run e2e
