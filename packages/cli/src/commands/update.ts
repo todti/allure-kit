@@ -6,6 +6,8 @@ import { detectInstalledAllurePackages, detectPackageManager, getInstallCommand 
 import { Command, Option } from "clipanion";
 import prompts from "prompts";
 
+import { buildUpdatePlan } from "../update-plan.js";
+
 export class KitUpdateCommand extends Command {
   static paths = [["update"]];
 
@@ -19,6 +21,10 @@ export class KitUpdateCommand extends Command {
 
   yes = Option.Boolean("--yes,-y", false, {
     description: "Update without confirmation",
+  });
+
+  dryRun = Option.Boolean("--dry-run", false, {
+    description: "Only show which packages would be updated",
   });
 
   cwd = Option.String("--cwd", {
@@ -37,21 +43,47 @@ export class KitUpdateCommand extends Command {
       return;
     }
 
+    const fetchLatest = async (name: string): Promise<string | null> => {
+      const result = await executeCommand(`npm view ${name} version`, workingDir);
+      const version = result.stdout.trim();
+
+      return result.exitCode === 0 && /^\d+\.\d+\.\d+/.test(version) ? version : null;
+    };
+    const plan = await buildUpdatePlan(workingDir, installedPackages, fetchLatest);
+
     console.log();
 
-    for (const { name, version, isDev } of installedPackages) {
+    for (const { name, version, isDev, current, latest, status, majorBump } of plan) {
       const scope = isDev ? "dev" : "prod";
 
-      logInfo(`${name}@${version} (${scope})`);
+      if (status === "current") {
+        logInfo(`${name}@${current} (${scope}) — up to date`);
+      } else if (status === "outdated") {
+        logInfo(`${name}@${current} → ${latest} (${scope})${majorBump ? " — MAJOR upgrade, check the changelog" : ""}`);
+      } else {
+        logInfo(`${name}@${version} (${scope}) — latest version unknown`);
+      }
     }
 
     logNewLine();
+
+    const toUpdate = plan.filter((pkg) => pkg.status !== "current");
+
+    if (toUpdate.length === 0) {
+      logSuccess("All Allure packages are up to date");
+      return;
+    }
+
+    if (this.dryRun === true) {
+      logInfo(`Would update ${toUpdate.length} package(s). Run without --dry-run to apply.`);
+      return;
+    }
 
     if (!this.yes) {
       const { shouldUpdate } = await prompts({
         type: "confirm",
         name: "shouldUpdate",
-        message: `Update ${installedPackages.length} package(s) to latest?`,
+        message: `Update ${toUpdate.length} package(s) to latest?`,
         initial: true,
       });
 
@@ -62,8 +94,8 @@ export class KitUpdateCommand extends Command {
     }
 
     const packageManager = await detectPackageManager(workingDir);
-    const devPackages = installedPackages.filter((pkg) => pkg.isDev).map((pkg) => `${pkg.name}@latest`);
-    const prodPackages = installedPackages.filter((pkg) => !pkg.isDev).map((pkg) => `${pkg.name}@latest`);
+    const devPackages = toUpdate.filter((pkg) => pkg.isDev).map((pkg) => `${pkg.name}@latest`);
+    const prodPackages = toUpdate.filter((pkg) => !pkg.isDev).map((pkg) => `${pkg.name}@latest`);
 
     if (devPackages.length > 0) {
       const installDevCommand = getInstallCommand(packageManager, devPackages, true);
