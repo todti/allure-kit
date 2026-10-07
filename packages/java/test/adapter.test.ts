@@ -82,13 +82,28 @@ describe("java/adapter", () => {
     expect(writes).toEqual({});
   });
 
-  it("does not patch pom.xml but explains why", async () => {
-    await put("pom.xml", "<project/>");
+  it("patches pom.xml, adds allure.properties and tells the user what to run", async () => {
+    await put("pom.xml", '<project>\n    <modelVersion>4.0.0</modelVersion>\n    <dependencies>\n    </dependencies>\n</project>\n');
 
-    const { outcome } = await patch();
+    const { outcome, writes } = await patch();
+
+    expect(outcome.status).toBe("patched");
+    expect(outcome.note).toContain("mvn test");
+    expect(Object.keys(writes).sort()).toEqual([join(dir, "pom.xml"), join(dir, "src/test/resources/allure.properties")].sort());
+    expect(writes[join(dir, "src/test/resources/allure.properties")]).toBe("allure.results.directory=target/allure-results\n");
+  });
+
+  it("reports an already-configured pom and a surefire plugin it must not overwrite", async () => {
+    await put("pom.xml", "<project><dependencies><dependency><artifactId>allure-jupiter</artifactId></dependency></dependencies></project>");
+    expect((await patch()).outcome.status).toBe("already-configured");
+
+    await put("pom.xml", "<project><build><plugins><plugin><artifactId>maven-surefire-plugin</artifactId></plugin></plugins></build></project>");
+
+    const { outcome, writes } = await patch();
 
     expect(outcome.status).toBe("unrecognized-shape");
-    expect(outcome.reason).toContain("pom.xml");
+    expect(outcome.reason).toContain("surefire");
+    expect(writes).toEqual({});
   });
 
   it("diagnoses an old Gradle wrapper and disabled autoconfiguration", async () => {
