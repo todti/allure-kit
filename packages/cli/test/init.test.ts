@@ -187,4 +187,19 @@ describe("kit/init", () => {
     expect(output).toContain('+   reporter: [["allure-playwright"]]');
     expect(output).toContain("would create allurerc.json");
   });
+
+  it("should point at the official configuration page of each selected framework", async () => {
+    await writeFile(join(tempDir, "package.json"), JSON.stringify({ devDependencies: { "@playwright/test": "^1.50.0" } }));
+    await writeFile(join(tempDir, "playwright.config.ts"), `export default defineConfig({\n  testDir: "./tests",\n});\n`);
+
+    const command = new KitInitCommand();
+    command.cwd = tempDir;
+    command.framework = "playwright";
+
+    await command.execute();
+
+    const output = logMock.mock.calls.map((call) => call.join(" ")).join("\n");
+
+    expect(output).toContain("Playwright: https://allurereport.org/docs/playwright-configuration/");
+  });
 });
