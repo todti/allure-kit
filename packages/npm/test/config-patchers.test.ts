@@ -599,4 +599,74 @@ describe("kit/config-patchers", () => {
       expect(await checkFrameworkWiring(tempDir, findFramework("jasmine"))).toBe("wired");
     });
   });
+
+  describe("scoping (no same-named key confusion)", () => {
+    const patch = async (file: string, id: string, content: string) => {
+      const configPath = join(tempDir, file);
+
+      await writeFile(configPath, content);
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework(id));
+
+      return { outcome, text: await readFile(configPath, "utf-8") };
+    };
+
+    it("playwright: ignores a reporter key inside projects and inserts a top-level one", async () => {
+      const { outcome, text } = await patch(
+        "playwright.config.ts",
+        "playwright",
+        `export default defineConfig({\n  projects: [{ name: "a", use: { reporter: ["line"] } }],\n});\n`,
+      );
+
+      expect(outcome.status).toBe("patched");
+      expect(text).toContain('reporter: [["allure-playwright"]],');
+      expect(text).toContain('use: { reporter: ["line"] }');
+    });
+
+    it("playwright: a reporter mentioned only in a comment does not count", async () => {
+      const { outcome, text } = await patch(
+        "playwright.config.ts",
+        "playwright",
+        `export default defineConfig({\n  // reporter: ["html"],\n  retries: 1,\n});\n`,
+      );
+
+      expect(outcome.status).toBe("patched");
+      expect(text).toContain('reporter: [["allure-playwright"]],');
+    });
+
+    it("vitest: finds reporters in a test block wider than 2000 characters", async () => {
+      const filler = Array.from({ length: 120 }, (_, i) => `    option${i}: "${"x".repeat(20)}",`).join("\n");
+      const { outcome, text } = await patch(
+        "vitest.config.ts",
+        "vitest",
+        `export default defineConfig({\n  test: {\n${filler}\n    reporters: ["default"],\n  },\n});\n`,
+      );
+
+      expect(outcome.status).toBe("patched");
+      expect(text.match(/reporters\s*:/g)).toHaveLength(1);
+      expect(text).toContain('reporters: ["allure-vitest/reporter", "default"]');
+    });
+
+    it("vitest: backs off when `test` is not an object literal", async () => {
+      const { outcome, text } = await patch(
+        "vitest.config.ts",
+        "vitest",
+        `export default defineConfig({\n  test: sharedTestConfig,\n});\n`,
+      );
+
+      expect(outcome.status).toBe("unrecognized-shape");
+      expect(text).not.toContain("allure-vitest");
+    });
+
+    it("jest: a nested testEnvironment under projects does not block the top-level one", async () => {
+      const { outcome, text } = await patch(
+        "jest.config.js",
+        "jest",
+        `module.exports = {\n  projects: [{ testEnvironment: "node" }],\n};\n`,
+      );
+
+      expect(outcome.status).toBe("patched");
+      expect(text).toContain('testEnvironment: "allure-jest/environment",');
+    });
+  });
 });
