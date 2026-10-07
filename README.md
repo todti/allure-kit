@@ -111,7 +111,7 @@ allure-kit doctor [--lang js|ts|python] [--json] [--strict] [--cwd <path>]
 
 Checks: package manager detection, `allurerc` presence and validity, adapter packages for each detected framework, the `allure` CLI package, configured plugin packages, and adapters that are installed but no longer match a detected framework.
 
-It also looks for combinations that fail silently: an adapter too old for the installed framework (currently `allure-playwright` < 3.9.0 with Playwright ≥ 1.60, where selective test-plan runs stop working), `allure-js` adapters on a different minor version than `allure-js-commons`, `qualityGate` combined with `historyPath` (known upstream issue [allure3#895](https://github.com/allure-framework/allure3/issues/895)), an `ALLURE_TESTPLAN_PATH` that points to a missing or invalid file, a custom plugin `import` that points to a missing local file, an `allure` package older than v3 or `allure-commandline` (Allure 2) installed next to it. It also lists known adapter limitations for the detected frameworks (no retry marking in Jest/Vitest, no test-plan support in CodeceptJS/Newman, Newman not writing `environmentInfo`/`categories`).
+It also looks for combinations that fail silently: an adapter too old for the installed framework (currently `allure-playwright` < 3.9.0 with Playwright ≥ 1.60, where selective test-plan runs stop working), `allure-js` adapters on a different minor version than `allure-js-commons`, `qualityGate` combined with `historyPath` (known upstream issue [allure3#895](https://github.com/allure-framework/allure3/issues/895)), an `ALLURE_TESTPLAN_PATH` that points to a missing or invalid file, a custom plugin `import` that points to a missing local file, an `allure` package older than v3 or `allure-commandline` (Allure 2) installed next to it. For TestOps users it hints at `useLegacyFullName: true` for `allure-playwright` (the default `fullName` is `file:line:column` and shifts when a test moves, so test-plan runs drop it). It also lists known adapter limitations for the detected frameworks (no retry marking in Jest/Vitest, no test-plan support in CodeceptJS/Newman, Newman not writing `environmentInfo`/`categories`).
 
 `--json` prints every check (step, level, message, hint) as JSON for CI and scripts; `--strict` makes the command exit with code 1 when issues are found.
 
@@ -126,10 +126,10 @@ allure-kit gh-pages init [--lang js|ts|python] [--yes] [--branch <name>] [--conf
 ### `ci init <provider>`
 
 ```bash
-allure-kit ci init circleci|jenkins|azure [--lang js|ts|python] [--test-command <cmd>] [--yes] [--cwd <path>]
+allure-kit ci init circleci|jenkins|azure|bitbucket [--lang js|ts|python] [--test-command <cmd>] [--yes] [--cwd <path>]
 ```
 
-Creates `.circleci/config.yml`, a `Jenkinsfile` or `azure-pipelines.yml`. Every pipeline installs dependencies, runs the tests without aborting, builds the report with `allure generate`, keeps it as a build artifact and fails the job afterwards if the tests failed. Python projects get a Python+Node image/setup and the framework's own test command. GitHub and GitLab have their own commands (`gh-pages init`, `gitlab init`).
+Creates `.circleci/config.yml`, a `Jenkinsfile`, `azure-pipelines.yml` or `bitbucket-pipelines.yml` (Bitbucket runs one container image, so it is JS/TS only; the artifact uses `capture-on: always` so the report is kept when a step fails). Every pipeline installs dependencies, runs the tests without aborting, builds the report with `allure generate`, keeps it as a build artifact and fails the job afterwards if the tests failed. Python projects get a Python+Node image/setup and the framework's own test command. GitHub and GitLab have their own commands (`gh-pages init`, `gitlab init`).
 
 ### `gitlab init`
 
