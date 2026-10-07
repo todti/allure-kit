@@ -1,10 +1,10 @@
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 
 import type { ConfigPatchOutcome, FileWriter, FrameworkDescriptor } from "@todti/allure-kit-core";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 
-import { findTopLevelProperty } from "./js-scan.js";
+import { findTopLevelProperty, hasTopLevelSpread } from "./js-scan.js";
 
 export type { ConfigPatchOutcome };
 
@@ -38,7 +38,7 @@ const findConfigObjectOpenBrace = (text: string): number | null => {
     /export\s+default\s+defineConfig\s*\(\s*\{/,
     /module\.exports\s*=\s*defineConfig\s*\(\s*\{/,
     /export\s+default\s+\{/,
-    /module\.exports\.config\s*=\s*\{/,
+    /(?:module\.)?exports\.config\s*=\s*\{/,
     /module\.exports\s*=\s*\{/,
     /export\s+const\s+config[^=]*=\s*\{/,
   ];
@@ -58,6 +58,11 @@ const insertProperty = (text: string, propertyText: string): string | null => {
   const openBrace = findConfigObjectOpenBrace(text);
 
   if (openBrace === null) {
+    return null;
+  }
+
+  // A `...spread` of another config may define the same key later in the literal and silently override ours.
+  if (hasTopLevelSpread(text, openBrace - 1)) {
     return null;
   }
 
@@ -208,7 +213,7 @@ const patchJestConfig = (text: string, configPath: string): string | null => {
       return null;
     }
 
-    json.testEnvironment = "allure-jest/environment";
+    json.testEnvironment = "allure-jest/node";
 
     return `${JSON.stringify(json, null, 2)}\n`;
   }
@@ -218,7 +223,7 @@ const patchJestConfig = (text: string, configPath: string): string | null => {
     return null;
   }
 
-  return insertProperty(text, 'testEnvironment: "allure-jest/environment",');
+  return insertProperty(text, 'testEnvironment: "allure-jest/node",');
 };
 
 const patchMochaConfig = (text: string, configPath: string): string | null => {
@@ -229,7 +234,7 @@ const patchMochaConfig = (text: string, configPath: string): string | null => {
       return null;
     }
 
-    json.reporter = "allure-mocha/reporter";
+    json.reporter = "allure-mocha";
 
     return `${JSON.stringify(json, null, 2)}\n`;
   }
@@ -241,7 +246,7 @@ const patchMochaConfig = (text: string, configPath: string): string | null => {
       return null;
     }
 
-    parsed.reporter = "allure-mocha/reporter";
+    parsed.reporter = "allure-mocha";
 
     return stringifyYaml(parsed);
   }
@@ -251,7 +256,7 @@ const patchMochaConfig = (text: string, configPath: string): string | null => {
     return null;
   }
 
-  return insertProperty(text, 'reporter: "allure-mocha/reporter",');
+  return insertProperty(text, 'reporter: "allure-mocha",');
 };
 
 const patchCucumberConfig = (text: string, configPath: string): string | null => {
@@ -333,12 +338,18 @@ const explainUnpatchable = (frameworkId: string, text: string, configPath: strin
   return "the config has a shape the patcher doesn't recognise";
 };
 
+/** Names earlier allure-kit versions wrote that don't exist in the adapter packages (so Jest/Mocha fail or silently ignore them). */
+export const OUTDATED_WIRING: Record<string, { bad: string; use: string }> = {
+  jest: { bad: "allure-jest/environment", use: "allure-jest/node" },
+  mocha: { bad: "allure-mocha/reporter", use: "allure-mocha" },
+};
+
 const ALREADY_CONFIGURED: Record<string, (text: string) => boolean> = {
   playwright: (text) => text.includes("allure-playwright"),
   wdio: (text) => /['"]allure['"]/.test(text),
   vitest: (text) => text.includes("allure-vitest/reporter"),
-  jest: (text) => text.includes("allure-jest/environment"),
-  mocha: (text) => text.includes("allure-mocha/reporter"),
+  jest: (text) => /allure-jest\/(node|jsdom|factory)/.test(text),
+  mocha: (text) => text.includes("allure-mocha"),
   cucumberjs: (text) => text.includes("allure-cucumberjs/reporter"),
   codeceptjs: (text) => text.includes("allure-codeceptjs"),
 };
@@ -486,7 +497,8 @@ const patchJasmineFramework = async (
     };
   }
 
-  const helperDir = resolve(cwd, target.dir);
+  // Jasmine resolves "helpers" globs relative to spec_dir, not the project root.
+  const helperDir = resolve(cwd, typeof json.spec_dir === "string" ? json.spec_dir : "", target.dir);
   const helperPath = resolve(helperDir, `allure.reporter.${target.ext}`);
 
   try {
@@ -497,7 +509,7 @@ const patchJasmineFramework = async (
       : {
           status: "unrecognized-shape",
           configPath: helperPath,
-          reason: `${target.dir}/allure.reporter.${target.ext} already exists without the Allure reporter`,
+          reason: `${relative(cwd, helperPath)} already exists without the Allure reporter`,
         };
   } catch {
     // Helper doesn't exist yet — create it below.
@@ -513,7 +525,7 @@ const patchJasmineFramework = async (
   return { status: "patched", configPath: helperPath };
 };
 
-export type FrameworkWiringStatus = "wired" | "not-wired" | "no-config-file" | "unsupported";
+export type FrameworkWiringStatus = "wired" | "not-wired" | "no-config-file" | "unsupported" | "outdated-name";
 
 // Read-only version of the "already configured?" check patchFrameworkConfig makes before
 // writing anything — for `doctor` to report on without touching any files.
@@ -552,7 +564,7 @@ export const checkFrameworkWiring = async (cwd: string, framework: FrameworkDesc
     }
 
     try {
-      const helperPath = resolve(resolve(cwd, target.dir), `allure.reporter.${target.ext}`);
+      const helperPath = resolve(cwd, typeof json.spec_dir === "string" ? json.spec_dir : "", target.dir, `allure.reporter.${target.ext}`);
       const existing = await readFile(helperPath, "utf-8");
 
       return existing.includes("allure-jasmine") ? "wired" : "not-wired";
@@ -574,6 +586,11 @@ export const checkFrameworkWiring = async (cwd: string, framework: FrameworkDesc
   }
 
   const text = await readFile(configPath, "utf-8");
+  const outdated = OUTDATED_WIRING[framework.id];
+
+  if (outdated && text.includes(outdated.bad)) {
+    return "outdated-name";
+  }
 
   return alreadyConfigured(text) ? "wired" : "not-wired";
 };

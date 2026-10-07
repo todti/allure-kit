@@ -23,6 +23,7 @@ import {
   detectWorkspaceFrameworks,
   FRAMEWORK_REGISTRY,
   npmAdapter,
+  OUTDATED_WIRING,
 } from "@todti/allure-kit-npm";
 import { readProjectPythonDependencies } from "@todti/allure-kit-python";
 import { Command, Option } from "clipanion";
@@ -144,6 +145,12 @@ const checkNpmEcosystem = async (workingDir: string, report: Reporter) => {
         } else if (wiring === "not-wired") {
           report.add("error", `${framework.displayName} adapter is installed but the reporter isn't wired into its config`);
           report.hint(framework.setupHint);
+          issues++;
+        } else if (wiring === "outdated-name") {
+          const { bad, use } = OUTDATED_WIRING[framework.id];
+
+          report.add("error", `${framework.displayName} config uses "${bad}", which doesn't exist — no results are written`);
+          report.hint(`Older allure-kit versions wrote this name. Replace it with "${use}" in the ${framework.displayName} config.`);
           issues++;
         } else if (wiring === "no-config-file") {
           report.add("warning", `${framework.displayName} config file not found — can't verify the reporter is wired`);

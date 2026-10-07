@@ -31,7 +31,7 @@ const assert = (condition, message) => {
 };
 
 const scenario = (name, body, { skip = false } = {}) => {
-  if (skip) {
+  if (skip || (process.env.E2E_ONLY && !name.startsWith(process.env.E2E_ONLY))) {
     console.log(`- ${name} (skipped)`);
 
     return;
@@ -75,6 +75,87 @@ scenario("vitest: init, doctor, run tests, generate report", (dir) => {
 
   run(dir, "npx", ["allure", "generate", "--output", "allure-report"]);
   assert(existsSync(join(dir, "allure-report", "index.html")), "the report was generated");
+});
+
+// Every framework follows the same path: install it, `init`, `doctor` is clean, run a trivial passing test, results appear.
+const frameworkScenario = ({ id, devDependencies, files, command }) =>
+  scenario(`${id}: init wires the reporter and tests produce allure-results`, (dir) => {
+    write(dir, "package.json", JSON.stringify({ name: `e2e-${id}`, private: true, devDependencies }));
+
+    for (const [file, content] of Object.entries(files)) {
+      write(dir, file, content);
+    }
+
+    run(dir, "npm", ["install", "--no-audit", "--no-fund"]);
+    kit(dir, "init", "--yes");
+
+    const doctor = JSON.parse(kit(dir, "doctor", "--json").output);
+
+    assert(doctor.ok === true, `doctor reports no issues (got ${JSON.stringify(doctor.checks.filter((c) => c.level === "error"))})`);
+
+    run(dir, command[0], command.slice(1));
+    assert(existsSync(join(dir, "allure-results")), "allure-results were written");
+  });
+
+frameworkScenario({
+  id: "jest",
+  devDependencies: { jest: "^29.7.0" },
+  files: {
+    "jest.config.js": "module.exports = {};\n",
+    "sum.test.js": 'test("sum", () => {\n  expect(1 + 1).toBe(2);\n});\n',
+  },
+  command: ["npx", "jest"],
+});
+
+frameworkScenario({
+  id: "mocha",
+  devDependencies: { mocha: "^10.8.2" },
+  files: {
+    ".mocharc.json": JSON.stringify({ spec: "test/*.js" }),
+    "test/sum.js": 'const assert = require("node:assert");\n\nit("sum", () => {\n  assert.equal(1 + 1, 2);\n});\n',
+  },
+  command: ["npx", "mocha"],
+});
+
+frameworkScenario({
+  id: "playwright",
+  devDependencies: { "@playwright/test": "^1.50.0" },
+  files: {
+    "playwright.config.ts": 'import { defineConfig } from "@playwright/test";\n\nexport default defineConfig({\n  testDir: "./tests",\n});\n',
+    "tests/sum.spec.ts": 'import { expect, test } from "@playwright/test";\n\ntest("sum", () => {\n  expect(1 + 1).toBe(2);\n});\n',
+  },
+  command: ["npx", "playwright", "test"],
+});
+
+frameworkScenario({
+  id: "jasmine",
+  devDependencies: { jasmine: "^5.4.0" },
+  files: {
+    "spec/support/jasmine.json": JSON.stringify({ spec_dir: "spec", spec_files: ["**/*[sS]pec.js"], helpers: ["helpers/**/*.js"] }),
+    "spec/sum.spec.js": 'describe("suite", () => {\n  it("sum", () => {\n    expect(1 + 1).toBe(2);\n  });\n});\n',
+  },
+  command: ["npx", "jasmine"],
+});
+
+frameworkScenario({
+  id: "cucumberjs",
+  devDependencies: { "@cucumber/cucumber": "^11.0.0" },
+  files: {
+    "cucumber.js": "module.exports = { default: {} };\n",
+    "features/sum.feature": "Feature: sum\n  Scenario: add\n    Given a number\n",
+    "features/steps.js": 'const { Given } = require("@cucumber/cucumber");\n\nGiven("a number", function () {});\n',
+  },
+  command: ["npx", "cucumber-js"],
+});
+
+frameworkScenario({
+  id: "codeceptjs",
+  devDependencies: { codeceptjs: "^3.6.0" },
+  files: {
+    "codecept.conf.js": 'exports.config = {\n  tests: "./*_test.js",\n  output: "./output",\n  helpers: { FileSystem: {} },\n  include: {},\n  name: "e2e",\n};\n',
+    "sum_test.js": 'Feature("sum");\n\nScenario("add", ({ I }) => {\n  I.say("hello");\n});\n',
+  },
+  command: ["npx", "codeceptjs", "run"],
 });
 
 scenario("migrate: Allure 2 project to Allure 3", (dir) => {
