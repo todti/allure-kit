@@ -100,9 +100,11 @@ allure-kit doctor [--cwd <path>]
 
 Checks: package manager detection, `allurerc` presence and validity, adapter packages for each detected framework, the `allure` CLI package, configured plugin packages, and adapters that are installed but no longer match a detected framework.
 
+It also looks for combinations that fail silently: an adapter too old for the installed framework (currently `allure-playwright` < 3.9.0 with Playwright ≥ 1.60, where selective test-plan runs stop working), `allure-js` adapters on a different minor version than `allure-js-commons`, `qualityGate` combined with `historyPath` (known upstream issue [allure3#895](https://github.com/allure-framework/allure3/issues/895)), an `ALLURE_TESTPLAN_PATH` that points to a missing or invalid file, an `allure` package older than v3 or `allure-commandline` (Allure 2) installed next to it. It also lists known adapter limitations for the detected frameworks (no retry marking in Jest/Vitest, no test-plan support in CodeceptJS/Newman, Newman not writing `environmentInfo`/`categories`).
+
 ### `gh-pages init`
 
-Creates a GitHub Actions workflow that generates an Allure report and publishes it to GitHub Pages via the `gh-pages` branch.
+Creates a GitHub Actions workflow that generates an Allure report and publishes it to GitHub Pages via the `gh-pages` branch. If the tests fail, the report is still generated and published, and the job fails afterwards. History is kept between runs by caching the `historyPath` file (`init` sets `historyPath: ./history.jsonl` in a JSON/YAML `allurerc` if it's missing; for an ESM config it prints a hint).
 
 ```bash
 allure-kit gh-pages init [--yes] [--branch <name>] [--config <path>] [--test-command <cmd>] [--cwd <path>]

@@ -4,7 +4,17 @@ import { writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { cwd as processCwd } from "node:process";
 
-import { logHint, logInfo, logNewLine, logStep, logSuccess, logWarning } from "@todti/allure-kit-core";
+import {
+  findExistingConfig,
+  logHint,
+  logInfo,
+  logNewLine,
+  logStep,
+  logSuccess,
+  logWarning,
+  readAllureConfig,
+  writeAllureConfig,
+} from "@todti/allure-kit-core";
 import { detectPackageManager } from "@todti/allure-kit-npm";
 import { Command, Option } from "clipanion";
 import prompts from "prompts";
@@ -35,13 +45,58 @@ export const getTestCommand = (packageManager: string): string => {
   }
 };
 
+const DEFAULT_HISTORY_PATH = "./history.jsonl";
+
+/**
+ * Allure 3 keeps history in a single JSONL file named by `historyPath` in allurerc (there is no CLI flag for
+ * `allure generate`), so the workflow caches that file between runs. Returns the path the workflow should cache.
+ */
+const ensureHistoryPath = async (workingDir: string, customConfigPath?: string): Promise<string> => {
+  if (customConfigPath) {
+    logHint(`Set "historyPath": "${DEFAULT_HISTORY_PATH}" in ${customConfigPath} so the cached history is used.`);
+
+    return DEFAULT_HISTORY_PATH;
+  }
+
+  const existing = await findExistingConfig(workingDir);
+
+  if (!existing) {
+    logHint(`No allurerc found — run 'allure-kit init', then set historyPath to ${DEFAULT_HISTORY_PATH}.`);
+
+    return DEFAULT_HISTORY_PATH;
+  }
+
+  if (existing.format === "mjs") {
+    logHint(`Add historyPath: "${DEFAULT_HISTORY_PATH}" to your ESM allurerc so the cached history is used.`);
+
+    return DEFAULT_HISTORY_PATH;
+  }
+
+  const config = await readAllureConfig(workingDir);
+
+  if (!config) {
+    return DEFAULT_HISTORY_PATH;
+  }
+
+  if (typeof config.historyPath === "string") {
+    return config.historyPath;
+  }
+
+  await writeAllureConfig(workingDir, { ...config, historyPath: DEFAULT_HISTORY_PATH }, existing.format);
+  logSuccess(`Set historyPath to ${DEFAULT_HISTORY_PATH} in allurerc`);
+
+  return DEFAULT_HISTORY_PATH;
+};
+
 const buildWorkflowYaml = (params: {
   defaultBranch: string;
   packageManager: string;
   allureConfigPath?: string;
   testCommand: string;
+  historyPath: string;
 }): string => {
   const installCommand = getInstallCommand(params.packageManager);
+  const cachePath = params.historyPath.replace(/^\.\//, "");
   const allureConfigArgument = params.allureConfigPath ? ` --config=${params.allureConfigPath}` : "";
 
   return `name: Allure Report (GitHub Pages)
@@ -69,16 +124,31 @@ jobs:
           cache: "${params.packageManager}"
       - name: Install dependencies
         run: ${installCommand}
+      - name: Restore Allure history
+        uses: actions/cache/restore@v4
+        with:
+          path: ${cachePath}
+          key: allure-history-\${{ github.run_id }}
+          restore-keys: allure-history-
       - name: Run tests (produce allure-results)
-        run: ${params.testCommand}
+        run: ${params.testCommand} || echo "TESTS_FAILED=1" >> "$GITHUB_ENV"
       - name: Generate Allure report
         run: npx allure generate${allureConfigArgument} --output ./allure-report
+      - name: Save Allure history
+        if: \${{ !cancelled() }}
+        uses: actions/cache/save@v4
+        with:
+          path: ${cachePath}
+          key: allure-history-\${{ github.run_id }}
       - name: Deploy to GitHub Pages (gh-pages branch)
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: \${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./allure-report
           publish_branch: gh-pages
+      - name: Fail the job if tests failed
+        if: env.TESTS_FAILED == '1'
+        run: exit 1
 `;
 };
 
@@ -175,11 +245,14 @@ export class KitGhPagesInitCommand extends Command {
     const resolvedBranch = typeof this.defaultBranch === "string" ? this.defaultBranch : defaultBranch;
     const resolvedTestCommand = typeof this.testCommand === "string" ? this.testCommand : selectedTestCommand;
 
+    const historyPath = await ensureHistoryPath(workingDir, allureConfigPath);
+
     const workflowYaml = buildWorkflowYaml({
       defaultBranch: resolvedBranch,
       packageManager,
       allureConfigPath,
       testCommand: resolvedTestCommand,
+      historyPath,
     });
 
     const workflowsDir = resolve(workingDir, ".github", "workflows");
