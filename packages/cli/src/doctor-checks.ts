@@ -430,3 +430,47 @@ export const checkUnsupportedConfigFields = (config: Record<string, unknown>): D
         },
       ];
 };
+
+const normalizeDir = (dir: string) => dir.replace(/^\.\//, "").replace(/\/+$/, "");
+
+const configuredResultsDirs = (config: Record<string, unknown> | null): string[] => {
+  const value = config?.resultsDir;
+
+  return (Array.isArray(value) ? value : value === undefined ? [] : [value]).filter((entry): entry is string => typeof entry === "string");
+};
+
+/**
+ * Adapters write to `allure-results` unless told otherwise, and `allure generate` reads `allure-results` unless the
+ * directory is given (argument or `resultsDir` in allurerc). A custom adapter directory that the report never reads
+ * means an empty report with no error.
+ */
+export const checkResultsDirAgreement = (
+  frameworkConfigs: { framework: string; source: string }[],
+  allureConfig: Record<string, unknown> | null,
+): DoctorFinding[] => {
+  const readsFrom = configuredResultsDirs(allureConfig).map(normalizeDir);
+
+  if (readsFrom.some((dir) => /[*?{]/.test(dir))) {
+    return [];
+  }
+
+  const reads = readsFrom.length > 0 ? readsFrom : ["allure-results"];
+  const findings: DoctorFinding[] = [];
+
+  for (const { framework, source } of frameworkConfigs) {
+    const writes =
+      framework === "wdio"
+        ? /\[\s*["']allure["']\s*,\s*\{[^}]*?outputDir\s*:\s*["']([^"']+)["']/.exec(source)?.[1]
+        : /\bresultsDir["']?\s*[:=]\s*["']([^"'$]+)["']/.exec(source)?.[1];
+
+    if (writes && !reads.includes(normalizeDir(writes))) {
+      findings.push({
+        level: "warning",
+        message: `${framework} writes results to ${writes}, but allure reads ${reads.join(", ")} — the report would be empty`,
+        hint: `Run \`allure generate ${writes}\`, or set resultsDir to "${writes}" in allurerc (\`allure-kit config set resultsDir ${writes}\`)`,
+      });
+    }
+  }
+
+  return findings;
+};
