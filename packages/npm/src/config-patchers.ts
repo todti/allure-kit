@@ -4,6 +4,8 @@ import { dirname, resolve } from "node:path";
 import type { ConfigPatchOutcome, FileWriter, FrameworkDescriptor } from "@todti/allure-kit-core";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 
+import { findTopLevelProperty } from "./js-scan.js";
+
 export type { ConfigPatchOutcome };
 
 interface ArrayPatchSpec {
@@ -62,35 +64,48 @@ const insertProperty = (text: string, propertyText: string): string | null => {
   return `${text.slice(0, openBrace)}\n  ${propertyText}${text.slice(openBrace)}`;
 };
 
+/**
+ * Looks up `key` among the *direct* properties of the config object literal (not in nested blocks, comments or
+ * strings). Returns `undefined` when the file has no recognisable config object so callers can fall back to the
+ * looser text search; `null` when the object exists but doesn't have the key.
+ */
+const findConfigProperty = (text: string, key: string) => {
+  const afterBrace = findConfigObjectOpenBrace(text);
+
+  return afterBrace === null ? undefined : findTopLevelProperty(text, afterBrace - 1, key);
+};
+
+const hasTopLevelKey = (text: string, key: string): boolean => {
+  const property = findConfigProperty(text, key);
+
+  return property === undefined ? new RegExp(`\\b${key}\\s*:`).test(text) : property !== null;
+};
+
 const patchArrayFramework = (text: string, spec: ArrayPatchSpec): string | null => {
-  const arrayRegex = new RegExp(`${spec.arrayKey}\\s*:\\s*\\[`);
-  const match = arrayRegex.exec(text);
+  const property = findConfigProperty(text, spec.arrayKey);
 
-  if (match) {
-    const insertAt = match.index + match[0].length;
+  if (property === undefined) {
+    // No recognisable config object (e.g. `const config = {...}; export default config`): fall back to a text search.
+    const loose = new RegExp(`${spec.arrayKey}\\s*:\\s*\\[`).exec(text);
 
-    return `${text.slice(0, insertAt)}${spec.entryText}, ${text.slice(insertAt)}`;
+    return loose ? `${text.slice(0, loose.index + loose[0].length)}${spec.entryText}, ${text.slice(loose.index + loose[0].length)}` : null;
   }
 
-  // Key exists but isn't an array (e.g. reporter: 'html') — don't blindly add a second
-  // `reporter:` property, that would silently shadow the user's value at runtime.
-  const keyExistsRegex = new RegExp(`\\b${spec.arrayKey}\\s*:`);
-
-  if (keyExistsRegex.test(text)) {
-    return null;
+  if (property) {
+    // Key exists but isn't an array (e.g. reporter: 'html') — don't add a second `reporter:`, that would
+    // silently shadow the user's value at runtime.
+    return text[property.valueStart] === "["
+      ? `${text.slice(0, property.valueStart + 1)}${spec.entryText}, ${text.slice(property.valueStart + 1)}`
+      : null;
   }
 
   return insertProperty(text, `${spec.arrayKey}: [${spec.entryText}],`);
 };
 
-// ponytail: bounded 2000-char lookahead to keep matches scoped to the relevant nested block
-// (test: {...}, default: {...}, plugins: {...}) instead of a same-named key elsewhere in the
-// file. Widen if real configs exceed that width between the block's opening brace and its keys.
-const WINDOW = 2000;
-
 // Appends `appendEntryText` to `key`'s array if it's already an array; inserts a fresh
 // `key: [fullArrayText],` property if `key` is absent; returns null if `key` exists but isn't
-// an array — inserting a second same-named key would silently shadow it.
+// an array — inserting a second same-named key would silently shadow it. `regionStart` is the index just
+// past the `{` of the block that should own `key`.
 const patchArrayKeyInRegion = (
   text: string,
   key: string,
@@ -98,17 +113,12 @@ const patchArrayKeyInRegion = (
   fullArrayText: string,
   regionStart: number,
 ): string | null => {
-  const window = text.slice(regionStart, regionStart + WINDOW);
-  const arrayMatch = new RegExp(`${key}\\s*:\\s*\\[`).exec(window);
+  const property = findTopLevelProperty(text, regionStart - 1, key);
 
-  if (arrayMatch) {
-    const at = regionStart + arrayMatch.index + arrayMatch[0].length;
-
-    return `${text.slice(0, at)}${appendEntryText}, ${text.slice(at)}`;
-  }
-
-  if (new RegExp(`\\b${key}\\s*:`).test(window)) {
-    return null;
+  if (property) {
+    return text[property.valueStart] === "["
+      ? `${text.slice(0, property.valueStart + 1)}${appendEntryText}, ${text.slice(property.valueStart + 1)}`
+      : null;
   }
 
   return `${text.slice(0, regionStart)}\n    ${key}: [${fullArrayText}],${text.slice(regionStart)}`;
@@ -116,13 +126,29 @@ const patchArrayKeyInRegion = (
 
 // Same idea as patchArrayKeyInRegion but for an object-literal key (e.g. plugins: { allure: {...} }).
 const patchObjectKeyInRegion = (text: string, key: string, insertText: string, regionStart: number): string | null => {
-  const window = text.slice(regionStart, regionStart + WINDOW);
-
-  if (new RegExp(`\\b${key}\\s*:`).test(window)) {
+  if (findTopLevelProperty(text, regionStart - 1, key)) {
     return null;
   }
 
   return `${text.slice(0, regionStart)}\n    ${key}: { ${insertText} },${text.slice(regionStart)}`;
+};
+
+/** Index just past the `{` of the object-literal value of a top-level config key; null if the key is absent or not an object. */
+const findNestedBlock = (text: string, key: string): number | null | undefined => {
+  const property = findConfigProperty(text, key);
+
+  if (property === undefined) {
+    const loose = new RegExp(`${key}\\s*:\\s*\\{`).exec(text);
+
+    return loose ? loose.index + loose[0].length : null;
+  }
+
+  if (property === null) {
+    return null;
+  }
+
+  // The key exists but isn't an object literal (e.g. a spread-in variable): signal "can't patch".
+  return text[property.valueStart] === "{" ? property.valueStart + 1 : undefined;
 };
 
 interface NestedArrayEntry {
@@ -134,15 +160,18 @@ interface NestedArrayEntry {
 // Patches one or more array keys nested under `outerKey: { ... }` (e.g. Vitest's `test:` block,
 // Cucumber's `default:` profile). Inserts the whole `outerKey: { ... }` block if it's absent.
 const patchNestedArrayConfig = (text: string, outerKey: string, entries: NestedArrayEntry[]): string | null => {
-  const outerBlock = new RegExp(`${outerKey}\\s*:\\s*\\{`).exec(text);
+  const braceEnd = findNestedBlock(text, outerKey);
 
-  if (!outerBlock) {
+  if (braceEnd === undefined) {
+    return null;
+  }
+
+  if (braceEnd === null) {
     const fullProps = entries.map((e) => `${e.key}: [${e.fullArrayText}],`).join(" ");
 
     return insertProperty(text, `${outerKey}: { ${fullProps} },`);
   }
 
-  const braceEnd = outerBlock.index + outerBlock[0].length;
   let result = text;
 
   for (const entry of entries) {
@@ -185,7 +214,7 @@ const patchJestConfig = (text: string, configPath: string): string | null => {
   }
 
   // Same reasoning as above, for the JS/TS/mjs/cjs shape.
-  if (/testEnvironment\s*:/.test(text)) {
+  if (hasTopLevelKey(text, "testEnvironment")) {
     return null;
   }
 
@@ -218,7 +247,7 @@ const patchMochaConfig = (text: string, configPath: string): string | null => {
   }
 
   // .mocharc.js / .cjs / .mjs
-  if (/\breporter\s*:/.test(text)) {
+  if (hasTopLevelKey(text, "reporter")) {
     return null;
   }
 
@@ -256,13 +285,15 @@ const patchCucumberConfig = (text: string, configPath: string): string | null =>
 
 const patchCodeceptConfig = (text: string): string | null => {
   const allureEntry = 'enabled: true, require: "allure-codeceptjs"';
-  const pluginsBlock = /plugins\s*:\s*\{/.exec(text);
+  const braceEnd = findNestedBlock(text, "plugins");
 
-  if (!pluginsBlock) {
-    return insertProperty(text, `plugins: { allure: { ${allureEntry} } },`);
+  if (braceEnd === undefined) {
+    return null;
   }
 
-  const braceEnd = pluginsBlock.index + pluginsBlock[0].length;
+  if (braceEnd === null) {
+    return insertProperty(text, `plugins: { allure: { ${allureEntry} } },`);
+  }
 
   return patchObjectKeyInRegion(text, "allure", allureEntry, braceEnd);
 };
