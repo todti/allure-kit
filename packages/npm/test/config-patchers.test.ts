@@ -171,7 +171,7 @@ describe("kit/config-patchers", () => {
 
       const json = JSON.parse(await readFile(configPath, "utf-8"));
 
-      expect(json.testEnvironment).toBe("allure-jest/environment");
+      expect(json.testEnvironment).toBe("allure-jest/node");
       expect(json.verbose).toBe(true);
     });
 
@@ -186,7 +186,7 @@ describe("kit/config-patchers", () => {
 
       const text = await readFile(configPath, "utf-8");
 
-      expect(text).toContain('testEnvironment: "allure-jest/environment",');
+      expect(text).toContain('testEnvironment: "allure-jest/node",');
     });
 
     it("doesn't overwrite an existing testEnvironment (JS)", async () => {
@@ -215,7 +215,7 @@ describe("kit/config-patchers", () => {
 
     it("reports already-configured only when our own marker is present", async () => {
       const configPath = join(tempDir, "jest.config.js");
-      const original = `module.exports = {\n  testEnvironment: "allure-jest/environment",\n};\n`;
+      const original = `module.exports = {\n  testEnvironment: "allure-jest/node",\n};\n`;
 
       await writeFile(configPath, original);
 
@@ -237,7 +237,7 @@ describe("kit/config-patchers", () => {
 
       const json = JSON.parse(await readFile(configPath, "utf-8"));
 
-      expect(json.reporter).toBe("allure-mocha/reporter");
+      expect(json.reporter).toBe("allure-mocha");
       expect(json.spec).toBe("test/**/*.spec.js");
     });
 
@@ -252,7 +252,7 @@ describe("kit/config-patchers", () => {
 
       const text = await readFile(configPath, "utf-8");
 
-      expect(text).toContain("reporter: allure-mocha/reporter");
+      expect(text).toContain("reporter: allure-mocha");
       expect(text).toContain("spec: test/**/*.spec.js");
     });
 
@@ -267,7 +267,7 @@ describe("kit/config-patchers", () => {
 
       const text = await readFile(configPath, "utf-8");
 
-      expect(text).toContain('reporter: "allure-mocha/reporter",');
+      expect(text).toContain('reporter: "allure-mocha",');
     });
 
     it("doesn't overwrite an existing reporter", async () => {
@@ -478,7 +478,7 @@ describe("kit/config-patchers", () => {
   });
 
   describe("jasmine", () => {
-    it("creates a helper file matching the default helpers glob", async () => {
+    it("creates the helper inside spec_dir, because Jasmine resolves helpers relative to it", async () => {
       const jasmineDir = join(tempDir, "spec", "support");
 
       await mkdir(jasmineDir, { recursive: true });
@@ -491,7 +491,7 @@ describe("kit/config-patchers", () => {
 
       expect(outcome.status).toBe("patched");
 
-      const helperText = await readFile(join(tempDir, "helpers", "allure.reporter.js"), "utf-8");
+      const helperText = await readFile(join(tempDir, "spec", "helpers", "allure.reporter.js"), "utf-8");
 
       expect(helperText).toContain('require("allure-jasmine")');
       expect(helperText).toContain("addReporter");
@@ -522,6 +522,39 @@ describe("kit/config-patchers", () => {
       const outcome = await patchFrameworkConfig(tempDir, findFramework("jasmine"));
 
       expect(outcome.status).toBe("unrecognized-shape");
+    });
+  });
+
+  describe("outdated names written by earlier allure-kit versions", () => {
+    it("checkFrameworkWiring flags allure-mocha/reporter and allure-jest/environment", async () => {
+      await writeFile(join(tempDir, ".mocharc.json"), JSON.stringify({ reporter: "allure-mocha/reporter" }));
+      await writeFile(join(tempDir, "jest.config.js"), 'module.exports = { testEnvironment: "allure-jest/environment" };\n');
+
+      expect(await checkFrameworkWiring(tempDir, findFramework("mocha"))).toBe("outdated-name");
+      expect(await checkFrameworkWiring(tempDir, findFramework("jest"))).toBe("outdated-name");
+    });
+
+    it("accepts the current names, including the jsdom environment", async () => {
+      await writeFile(join(tempDir, ".mocharc.json"), JSON.stringify({ reporter: "allure-mocha" }));
+      await writeFile(join(tempDir, "jest.config.js"), 'module.exports = { testEnvironment: "allure-jest/jsdom" };\n');
+
+      expect(await checkFrameworkWiring(tempDir, findFramework("mocha"))).toBe("wired");
+      expect(await checkFrameworkWiring(tempDir, findFramework("jest"))).toBe("wired");
+    });
+
+    it("checkFrameworkWiring looks for the Jasmine helper under spec_dir", async () => {
+      await mkdir(join(tempDir, "spec", "support"), { recursive: true });
+      await writeFile(join(tempDir, "spec", "support", "jasmine.json"), JSON.stringify({ spec_dir: "spec", helpers: ["helpers/**/*.js"] }));
+      await mkdir(join(tempDir, "helpers"), { recursive: true });
+      await writeFile(join(tempDir, "helpers", "allure.reporter.js"), 'require("allure-jasmine");\n');
+
+      // The misplaced helper (what older versions wrote) isn't picked up by Jasmine.
+      expect(await checkFrameworkWiring(tempDir, findFramework("jasmine"))).toBe("not-wired");
+
+      await mkdir(join(tempDir, "spec", "helpers"), { recursive: true });
+      await writeFile(join(tempDir, "spec", "helpers", "allure.reporter.js"), 'require("allure-jasmine");\n');
+
+      expect(await checkFrameworkWiring(tempDir, findFramework("jasmine"))).toBe("wired");
     });
   });
 
@@ -666,7 +699,7 @@ describe("kit/config-patchers", () => {
       );
 
       expect(outcome.status).toBe("patched");
-      expect(text).toContain('testEnvironment: "allure-jest/environment",');
+      expect(text).toContain('testEnvironment: "allure-jest/node",');
     });
   });
 
@@ -694,6 +727,19 @@ describe("kit/config-patchers", () => {
       const outcome = await reasonFor("cypress.config.ts", "cypress", `export default defineConfig({ e2e: {} });\n`);
 
       expect(outcome.reason).toContain("setupNodeEvents(on, config)");
+    });
+  });
+
+  describe("codeceptjs config shapes", () => {
+    it("wires the `exports.config = {` form that `codeceptjs init` generates", async () => {
+      const configPath = join(tempDir, "codecept.conf.js");
+
+      await writeFile(configPath, 'exports.config = {\n  tests: "./*_test.js",\n  helpers: {},\n};\n');
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("codeceptjs"));
+
+      expect(outcome.status).toBe("patched");
+      expect(await readFile(configPath, "utf-8")).toContain('plugins: { allure: { enabled: true, require: "allure-codeceptjs" } },');
     });
   });
 });
