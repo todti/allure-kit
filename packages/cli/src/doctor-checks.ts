@@ -57,6 +57,27 @@ export const ADAPTER_COMPAT_RULES: AdapterCompatRule[] = [
   },
 ];
 
+interface FrameworkTooOldRule {
+  frameworkPackage: string;
+  adapterPackage: string;
+  /** The framework is broken below this version... */
+  frameworkBelow: string;
+  /** ...when combined with the adapter at this version or newer. */
+  adapterFrom: string;
+  problem: string;
+}
+
+/** Reproduced by running the combination in a clean project, not taken from an issue tracker. */
+export const FRAMEWORK_TOO_OLD_RULES: FrameworkTooOldRule[] = [
+  {
+    frameworkPackage: "vitest",
+    adapterPackage: "allure-vitest",
+    frameworkBelow: "3.0.0",
+    adapterFrom: "3.13.0",
+    problem: "the reporter writes no allure-results at all, and nothing reports an error (reproduced with vitest 2.1.9)",
+  },
+];
+
 export const checkAdapterCompat = async (cwd: string): Promise<DoctorFinding[]> => {
   const findings: DoctorFinding[] = [];
 
@@ -78,6 +99,28 @@ export const checkAdapterCompat = async (cwd: string): Promise<DoctorFinding[]> 
         level: "error",
         message: `${rule.adapterPackage}@${adapterVersion} is too old for ${rule.frameworkPackage}@${frameworkVersion}: ${rule.problem}`,
         hint: `Upgrade: ${rule.adapterPackage}@>=${rule.adapterMin} (allure-kit update)`,
+      });
+    }
+  }
+
+  for (const rule of FRAMEWORK_TOO_OLD_RULES) {
+    const [frameworkVersion, adapterVersion] = await Promise.all([
+      readInstalledVersion(cwd, rule.frameworkPackage),
+      readInstalledVersion(cwd, rule.adapterPackage),
+    ]);
+
+    if (!frameworkVersion || !adapterVersion) {
+      continue;
+    }
+
+    const frameworkCmp = compareVersions(frameworkVersion, rule.frameworkBelow);
+    const adapterCmp = compareVersions(adapterVersion, rule.adapterFrom);
+
+    if (frameworkCmp !== null && adapterCmp !== null && frameworkCmp < 0 && adapterCmp >= 0) {
+      findings.push({
+        level: "error",
+        message: `${rule.frameworkPackage}@${frameworkVersion} with ${rule.adapterPackage}@${adapterVersion}: ${rule.problem}`,
+        hint: `Upgrade ${rule.frameworkPackage} to ${rule.frameworkBelow} or newer, or pin ${rule.adapterPackage} to an older release`,
       });
     }
   }
