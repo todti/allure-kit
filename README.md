@@ -131,7 +131,7 @@ allure-kit gh-pages init [--lang js|ts|python] [--yes] [--branch <name>] [--conf
 allure-kit ci init circleci|jenkins|azure [--lang js|ts|python] [--test-command <cmd>] [--yes] [--cwd <path>]
 ```
 
-Creates `.circleci/config.yml`, a `Jenkinsfile` or `azure-pipelines.yml`. Every pipeline installs dependencies, runs the tests without aborting, builds the report with `allure generate`, keeps it as a build artifact and fails the job afterwards if the tests failed. Python projects get a Python+Node image/setup and the framework's own test command. GitHub and GitLab have their own commands (`gh-pages init`, `gitlab init`).
+Creates `.circleci/config.yml`, a `Jenkinsfile` or `azure-pipelines.yml`. Every pipeline installs dependencies, runs the tests without aborting, builds the report with `allure generate`, keeps it as a build artifact and fails the job afterwards if the tests failed. Python projects get a Python+Node image/setup and the framework's own test command; Gradle projects get a JDK image, `./gradlew test` and the plugin's `./gradlew allureReport` (report in `build/reports/allure-report/allureReport`). Maven isn't supported by `ci init`. GitHub and GitLab have their own commands (`gh-pages init`, `gitlab init`).
 
 ### `gitlab init`
 

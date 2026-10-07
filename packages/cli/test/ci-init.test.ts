@@ -93,4 +93,38 @@ describe("kit/ci-init", () => {
     await expect(command.execute()).rejects.toThrow(UsageError);
     await expect(command.execute()).rejects.toThrow(/gitlab init/);
   });
+
+  describe("java (Gradle)", () => {
+    const gradleProject = () =>
+      writeFile(join(dir, "build.gradle.kts"), 'plugins { id("io.qameta.allure") version "4.3.0" }\ntests { useJUnitPlatform() }\n');
+
+    it("uses a JDK image, the Gradle report task and its output directory", async () => {
+      const config = parseYaml(await run("circleci", gradleProject));
+      const text = JSON.stringify(config);
+
+      expect(config.jobs["allure-report"].docker[0].image).toBe("cimg/openjdk:17.0");
+      expect(text).toContain("chmod +x ./gradlew");
+      expect(text).toContain("./gradlew test || touch .tests-failed");
+      expect(text).toContain("./gradlew allureReport");
+      expect(text).toContain("build/reports/allure-report/allureReport");
+      expect(text).not.toContain("npx");
+    });
+
+    it("skips Node setup in the Azure pipeline and archives the Gradle report in Jenkins", async () => {
+      expect(await run("azure", gradleProject)).not.toContain("NodeTool@0");
+      expect(await run("jenkins")).toContain("archiveArtifacts artifacts: 'build/reports/allure-report/allureReport/**'");
+    });
+
+    it("refuses Maven projects", async () => {
+      await writeFile(join(dir, "pom.xml"), "<project/>");
+
+      const command = new KitCiInitCommand();
+
+      command.provider = "circleci";
+      command.cwd = dir;
+      command.yes = true;
+
+      await expect(command.execute()).rejects.toThrow(/only available for Gradle/);
+    });
+  });
 });
