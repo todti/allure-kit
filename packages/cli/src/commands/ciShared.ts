@@ -43,7 +43,7 @@ const PYTHON_TEST_COMMANDS: Record<string, string> = {
   pytest: "pytest --alluredir=allure-results",
   "pytest-bdd": "pytest --alluredir=allure-results",
   behave: "behave -f allure_behave.formatter:AllureFormatter -o allure-results",
-  robotframework: "robot --listener allure_robotframework.ListenerV3:allure-results .",
+  robotframework: "robot --listener allure_robotframework:allure-results .",
 };
 
 export const getPythonTestCommand = (packageManager: string, frameworkId: string | undefined): string =>

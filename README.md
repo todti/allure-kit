@@ -77,7 +77,7 @@ Allure 3's report generator (`allure generate`) is a Node.js CLI regardless of t
 allure-kit init [--lang js|ts|python] [--framework <id>] [--format json|yaml|mjs] [--yes] [--dry-run] [--cwd <path>]
 ```
 
-Detects test frameworks (by dependencies, config files, and existing tests), installs matching adapters, and creates an `allurerc` config. `init` does **not** generate any demo tests — it only configures Allure. Sample tests live in a separate repository.
+Detects test frameworks (by dependencies, config files, and existing tests), installs matching adapters, and creates an `allurerc` config. After wiring, `init` prints the official Allure configuration page for each selected framework (adapter options and examples). `init` does **not** generate any demo tests — it only configures Allure. Sample tests live in a separate repository.
 
 Flags:
 - `--lang` — project language: `js`/`ts` (treated the same) or `python`/`py`. Without this flag, `init` auto-detects: `package.json` present → JS/TS, otherwise a Python manifest (`pyproject.toml`, `requirements*.txt`, `Pipfile`, `setup.py`/`setup.cfg`) present → Python, otherwise defaults to JS/TS.
@@ -103,6 +103,8 @@ allure-kit migrate [--dry-run] [--cwd <path>]
 
 For JS/TS projects still on Allure 2: replaces `allure-commandline` with `allure`, rewrites `package.json` scripts (`allure serve <dir>` → `allure generate <dir> --open`; `--clean` is dropped because Allure 3's `generate` doesn't accept it), and creates an `allurerc.json` if there is none. `-c` is only flagged for manual review — it meant "clean" in Allure 2 but is `--config` in Allure 3. Use `--dry-run` to preview.
 
+In a Maven or Gradle project (no `package.json`) it migrates `allure-junit5` / `allure-junit5-assert` to `allure-jupiter` / `allure-jupiter-assert` (Allure Java 3.0 no longer publishes the old artifacts) and bumps a shared `<allure.version>` property below 3 to 3.0.0. Versions pinned on a dependency itself are only reported, and Allure Java 3 needs Java 17+.
+
 ### `doctor`
 
 In a monorepo, when the root has no test framework, `init` and `doctor` look into npm/yarn/pnpm workspaces and tell you which packages to run them in (`--cwd packages/web`).
@@ -113,7 +115,7 @@ allure-kit doctor [--lang js|ts|python] [--json] [--strict] [--cwd <path>]
 
 Checks: package manager detection, `allurerc` presence and validity, adapter packages for each detected framework, the `allure` CLI package, configured plugin packages, and adapters that are installed but no longer match a detected framework.
 
-It also looks for combinations that fail silently: an adapter too old for the installed framework (currently `allure-playwright` < 3.9.0 with Playwright ≥ 1.60, where selective test-plan runs stop working), `allure-js` adapters on a different minor version than `allure-js-commons`, `qualityGate` combined with `historyPath` (known upstream issue [allure3#895](https://github.com/allure-framework/allure3/issues/895)), an `ALLURE_TESTPLAN_PATH` that points to a missing or invalid file, a custom plugin `import` that points to a missing local file, an `allure` package older than v3 or `allure-commandline` (Allure 2) installed next to it. It also lists known adapter limitations for the detected frameworks (no retry marking in Jest/Vitest, no test-plan support in CodeceptJS/Newman, Newman not writing `environmentInfo`/`categories`).
+It also looks for combinations that fail silently: an adapter too old for the installed framework (currently `allure-playwright` < 3.9.0 with Playwright ≥ 1.60, where selective test-plan runs stop working), `allure-js` adapters on a different minor version than `allure-js-commons`, `qualityGate` combined with `historyPath` (known upstream issue [allure3#895](https://github.com/allure-framework/allure3/issues/895)), an `ALLURE_TESTPLAN_PATH` that points to a missing or invalid file, a custom plugin `import` that points to a missing local file, a GitHub workflow using `allure-framework/allure-action` without `pull-requests: write` / `checks: write` permissions or a `github-token` input (the step runs but nothing shows up on the PR), `allure-vitest` ≥ 3.13 on Vitest < 3 (it silently writes no results — reproduced in a clean project), an `allure` package older than v3 or `allure-commandline` (Allure 2) installed next to it. For TestOps users it hints at `useLegacyFullName: true` for `allure-playwright` (the default `fullName` is `file:line:column` and shifts when a test moves, so test-plan runs drop it). It also lists known adapter limitations for the detected frameworks (no retry marking in Jest/Vitest, no test-plan support in CodeceptJS/Newman, Newman not writing `environmentInfo`/`categories`).
 
 `--json` prints every check (step, level, message, hint) as JSON for CI and scripts; `--strict` makes the command exit with code 1 when issues are found.
 
@@ -128,22 +130,22 @@ allure-kit gh-pages init [--lang js|ts|python] [--yes] [--branch <name>] [--conf
 ### `ci init <provider>`
 
 ```bash
-allure-kit ci init circleci|jenkins|azure [--lang js|ts|python] [--test-command <cmd>] [--yes] [--cwd <path>]
+allure-kit ci init circleci|jenkins|azure|bitbucket [--lang js|ts|python] [--test-command <cmd>] [--yes] [--cwd <path>]
 ```
 
-Creates `.circleci/config.yml`, a `Jenkinsfile` or `azure-pipelines.yml`. Every pipeline installs dependencies, runs the tests without aborting, builds the report with `allure generate`, keeps it as a build artifact and fails the job afterwards if the tests failed. Python projects get a Python+Node image/setup and the framework's own test command; Gradle projects get a JDK image, `./gradlew test` and the plugin's `./gradlew allureReport` (report in `build/reports/allure-report/allureReport`). Maven projects get a `cimg/openjdk:17.0-node` image (CircleCI), `mvn -B test` and `npx --yes allure generate target/allure-results` (set `allure.results.directory=target/allure-results` in `allure.properties`). GitHub and GitLab have their own commands (`gh-pages init`, `gitlab init`).
+Creates `.circleci/config.yml`, a `Jenkinsfile`, `azure-pipelines.yml` or `bitbucket-pipelines.yml` (Bitbucket runs one container image, so it is JS/TS only; the artifact uses `capture-on: always` so the report is kept when a step fails). Every pipeline installs dependencies, runs the tests without aborting, builds the report with `allure generate`, keeps it as a build artifact and fails the job afterwards if the tests failed. Python projects get a Python+Node image/setup and the framework's own test command; Gradle projects get a JDK image, `./gradlew test` and the plugin's `./gradlew allureReport` (report in `build/reports/allure-report/allureReport`). Maven projects get a `cimg/openjdk:17.0-node` image (CircleCI), `mvn -B test` and `npx --yes allure generate target/allure-results` (set `allure.results.directory=target/allure-results` in `allure.properties`). GitHub and GitLab have their own commands (`gh-pages init`, `gitlab init`).
 
 ### `gitlab init`
 
 Creates a GitLab CI job (`.gitlab/allure-report.gitlab-ci.yml`, included from `.gitlab-ci.yml`) that runs your tests and calls `allure gitlab`: it builds the report, restores history from the previous run, and posts a summary comment on merge requests. Set a masked `GITLAB_TOKEN` CI/CD variable (api scope) to enable history restore and comments.
 
 ```bash
-allure-kit gitlab init [--yes] [--image <image>] [--config <path>] [--test-command <cmd>] [--cwd <path>]
+allure-kit gitlab init [--lang js|ts|python] [--yes] [--image <image>] [--config <path>] [--test-command <cmd>] [--cwd <path>]
 ```
 
 ### `config get` / `config set` / `config list` / `config unset`
 
-Read, write, list or remove top-level `allurerc` options (`name`, `output`, `resultsDir`, `historyPath`, `appendHistory`, `historyLimit`, `historyBaseUrl`, `knownIssuesPath`, `environment`, `port`, `flakyDetection.historyDepth`, `flakyDetection.includePassedTests`). JSON/YAML configs only.
+Read, write, list or remove top-level `allurerc` options (`name`, `output`, `resultsDir`, `historyPath`, `appendHistory`, `historyLimit`, `historyBaseUrl`, `knownIssuesPath`, `environment`, `port`, `flakyDetection.historyDepth`, `flakyDetection.includePassedTests`). Works on JSON/YAML configs, and on an `allurerc.mjs` / `.cjs` whose config is a plain object literal (`export default defineConfig({...})`, `export default {...}`, `module.exports = ...`) — those are edited in place as text, so comments and formatting survive. `config get` / `config list` can't evaluate an ESM config and only work for JSON/YAML.
 
 ```bash
 allure-kit config set flakyDetection.historyDepth 10
@@ -206,7 +208,7 @@ Python:
 
 Python package managers pip, [Poetry](https://python-poetry.org/), [PDM](https://pdm-project.org/), and [Pipenv](https://pipenv.pypa.io/) are auto-detected the same way as the npm-family managers. `pip install` doesn't update any manifest on its own, so when pip is the resolved manager `init` also appends the installed adapter(s) to `requirements.txt`.
 
-`doctor` works for Python projects too: it checks that each detected framework's adapter is declared in your dependencies (`requirements*.txt`, `pyproject.toml`, `Pipfile`) and reminds you that reports need the Node.js Allure CLI. `gh-pages init` also scaffolds a Python workflow (`actions/setup-python`, the project's own installer, the framework's `--alluredir`/formatter command, Node for `npx allure generate`); `gitlab init` is still JS/TS-only.
+`doctor` works for Python projects too: it checks that each detected framework's adapter is declared in your dependencies (`requirements*.txt`, `pyproject.toml`, `Pipfile`) and reminds you that reports need the Node.js Allure CLI. `gh-pages init` also scaffolds a Python workflow (`actions/setup-python`, the project's own installer, the framework's `--alluredir`/formatter command, Node for `npx allure generate`); `gitlab init` supports Python too (a `python:3.12` job that installs Node.js from NodeSource for `allure gitlab`).
 
 ## Report plugins
 
