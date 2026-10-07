@@ -15,6 +15,7 @@ import {
   KitGhPagesInitCommand,
   KitGitlabInitCommand,
   KitInitCommand,
+  KitMigrateCommand,
   KitPluginAddCommand,
   KitPluginEditCommand,
   KitPluginListCommand,
@@ -46,6 +47,7 @@ cli.register(KitPluginRemoveCommand);
 cli.register(KitPluginListCommand);
 cli.register(KitConfigSetCommand);
 cli.register(KitCiInitCommand);
+cli.register(KitMigrateCommand);
 cli.register(KitConfigGetCommand);
 cli.register(KitConfigListCommand);
 cli.register(KitConfigUnsetCommand);

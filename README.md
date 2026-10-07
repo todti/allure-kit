@@ -93,6 +93,14 @@ allure-kit update [--yes] [--cwd <path>]
 
 Finds every installed Allure package (CLI, adapters, plugins) and updates them all to latest via your package manager.
 
+### `migrate`
+
+```bash
+allure-kit migrate [--dry-run] [--cwd <path>]
+```
+
+For JS/TS projects still on Allure 2: replaces `allure-commandline` with `allure`, rewrites `package.json` scripts (`allure serve <dir>` → `allure generate <dir> --open`; `--clean` is dropped because Allure 3's `generate` doesn't accept it), and creates an `allurerc.json` if there is none. `-c` is only flagged for manual review — it meant "clean" in Allure 2 but is `--config` in Allure 3. Use `--dry-run` to preview.
+
 ### `doctor`
 
 In a monorepo, when the root has no test framework, `init` and `doctor` look into npm/yarn/pnpm workspaces and tell you which packages to run them in (`--cwd packages/web`).
