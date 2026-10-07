@@ -11,6 +11,10 @@ import { fileURLToPath } from "node:url";
 const cli = resolve(dirname(fileURLToPath(import.meta.url)), "../packages/cli/bin/allure-kit.js");
 const failures = [];
 
+// E2E_LATEST=1 swaps every pinned framework range for "latest": new projects install the newest majors, so the nightly
+// run exercises both the ranges below and whatever has just been released.
+const version = (range) => (process.env.E2E_LATEST ? "latest" : range);
+
 const run = (cwd, command, args, { allowFailure = false } = {}) => {
   const result = spawnSync(command, args, { cwd, encoding: "utf-8", shell: process.platform === "win32", timeout: 10 * 60 * 1000 });
   const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
@@ -58,7 +62,7 @@ const write = (dir, file, content) => {
 };
 
 scenario("vitest: init, doctor, run tests, generate report", (dir) => {
-  write(dir, "package.json", JSON.stringify({ name: "e2e-vitest", private: true, type: "module", devDependencies: { vitest: "^3.0.0" } }));
+  write(dir, "package.json", JSON.stringify({ name: "e2e-vitest", private: true, type: "module", devDependencies: { vitest: version("^3.0.0") } }));
   write(dir, "vitest.config.ts", 'import { defineConfig } from "vitest/config";\n\nexport default defineConfig({\n  test: {},\n});\n');
   write(dir, "sum.test.ts", 'import { expect, test } from "vitest";\n\ntest("sum", () => {\n  expect(1 + 1).toBe(2);\n});\n');
   run(dir, "npm", ["install", "--no-audit", "--no-fund"]);
@@ -99,7 +103,7 @@ const frameworkScenario = ({ id, devDependencies, files, command }) =>
 
 frameworkScenario({
   id: "jest",
-  devDependencies: { jest: "^29.7.0" },
+  devDependencies: { jest: version("^29.7.0") },
   files: {
     "jest.config.js": "module.exports = {};\n",
     "sum.test.js": 'test("sum", () => {\n  expect(1 + 1).toBe(2);\n});\n',
@@ -109,7 +113,7 @@ frameworkScenario({
 
 frameworkScenario({
   id: "mocha",
-  devDependencies: { mocha: "^10.8.2" },
+  devDependencies: { mocha: version("^10.8.2") },
   files: {
     ".mocharc.json": JSON.stringify({ spec: "test/*.js" }),
     "test/sum.js": 'const assert = require("node:assert");\n\nit("sum", () => {\n  assert.equal(1 + 1, 2);\n});\n',
@@ -119,7 +123,7 @@ frameworkScenario({
 
 frameworkScenario({
   id: "playwright",
-  devDependencies: { "@playwright/test": "^1.50.0" },
+  devDependencies: { "@playwright/test": version("^1.50.0") },
   files: {
     "playwright.config.ts": 'import { defineConfig } from "@playwright/test";\n\nexport default defineConfig({\n  testDir: "./tests",\n});\n',
     "tests/sum.spec.ts": 'import { expect, test } from "@playwright/test";\n\ntest("sum", () => {\n  expect(1 + 1).toBe(2);\n});\n',
@@ -129,7 +133,7 @@ frameworkScenario({
 
 frameworkScenario({
   id: "jasmine",
-  devDependencies: { jasmine: "^5.4.0" },
+  devDependencies: { jasmine: version("^5.4.0") },
   files: {
     "spec/support/jasmine.json": JSON.stringify({ spec_dir: "spec", spec_files: ["**/*[sS]pec.js"], helpers: ["helpers/**/*.js"] }),
     "spec/sum.spec.js": 'describe("suite", () => {\n  it("sum", () => {\n    expect(1 + 1).toBe(2);\n  });\n});\n',
@@ -139,7 +143,7 @@ frameworkScenario({
 
 frameworkScenario({
   id: "cucumberjs",
-  devDependencies: { "@cucumber/cucumber": "^11.0.0" },
+  devDependencies: { "@cucumber/cucumber": version("^11.0.0") },
   files: {
     "cucumber.js": "module.exports = { default: {} };\n",
     "features/sum.feature": "Feature: sum\n  Scenario: add\n    Given a number\n",
@@ -150,7 +154,7 @@ frameworkScenario({
 
 frameworkScenario({
   id: "codeceptjs",
-  devDependencies: { codeceptjs: "^3.6.0" },
+  devDependencies: { codeceptjs: version("^3.6.0") },
   files: {
     "codecept.conf.js": 'exports.config = {\n  tests: "./*_test.js",\n  output: "./output",\n  helpers: { FileSystem: {} },\n  include: {},\n  name: "e2e",\n};\n',
     "sum_test.js": 'Feature("sum");\n\nScenario("add", ({ I }) => {\n  I.say("hello");\n});\n',
@@ -234,7 +238,7 @@ pythonScenario({
 scenario("newman: init installs the reporter and `-r allure` produces allure-results", (dir) => {
   const port = 38000 + Math.floor(Math.random() * 1000);
 
-  write(dir, "package.json", JSON.stringify({ name: "e2e-newman", private: true, devDependencies: { newman: "^6.2.1" } }));
+  write(dir, "package.json", JSON.stringify({ name: "e2e-newman", private: true, devDependencies: { newman: version("^6.2.1") } }));
   write(
     dir,
     "collection.json",
@@ -281,7 +285,7 @@ scenario("newman: init installs the reporter and `-r allure` produces allure-res
 // Cypress needs a ~200 MB binary we don't download here, so this checks what `init` can break without running a browser:
 // the patched config must still load as CommonJS and its setupNodeEvents must register the Allure hooks.
 scenario("cypress: init wires a CommonJS config that still loads", (dir) => {
-  write(dir, "package.json", JSON.stringify({ name: "e2e-cypress", private: true, devDependencies: { cypress: "^13.17.0" } }));
+  write(dir, "package.json", JSON.stringify({ name: "e2e-cypress", private: true, devDependencies: { cypress: version("^13.17.0") } }));
   write(
     dir,
     "cypress.config.js",
@@ -301,6 +305,27 @@ scenario("cypress: init wires a CommonJS config that still loads", (dir) => {
   ]);
 
   assert(/task|after:|before:/.test(registered.output), `setupNodeEvents registered Allure hooks (got ${JSON.stringify(registered.output)})`);
+});
+
+// WebdriverIO can't run here without a browser session, so check what `init` controls: the reporter entry in the
+// config (which must still load) and that the reporter package resolves.
+scenario("wdio: init adds the allure reporter to a CommonJS config that still loads", (dir) => {
+  write(dir, "package.json", JSON.stringify({ name: "e2e-wdio", private: true, devDependencies: { webdriverio: version("^9.0.0") } }));
+  write(dir, "wdio.conf.js", "exports.config = {\n  runner: 'local',\n  specs: [],\n  reporters: ['spec'],\n};\n");
+  run(dir, "npm", ["install", "--no-audit", "--no-fund"]);
+  kit(dir, "init", "--yes");
+
+  const doctor = JSON.parse(kit(dir, "doctor", "--json").output);
+
+  assert(doctor.ok === true, `doctor reports no issues (got ${JSON.stringify(doctor.checks.filter((c) => c.level === "error"))})`);
+
+  const loaded = run(dir, process.execPath, [
+    "-e",
+    'const { config } = require("./wdio.conf.js"); require.resolve("@wdio/allure-reporter"); console.log(JSON.stringify(config.reporters));',
+  ]);
+
+  assert(/allure/.test(loaded.output), `the reporters list contains allure (got ${loaded.output.trim()})`);
+  assert(/spec/.test(loaded.output), "the existing reporter was kept");
 });
 
 scenario("migrate: Allure 2 project to Allure 3", (dir) => {
