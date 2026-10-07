@@ -107,4 +107,20 @@ describe("kit/doctor", () => {
     expect(output()).toContain("reporter is wired into its config");
     expect(output()).toContain("No issues found");
   });
+
+  it("should count an outdated Playwright adapter as an issue", async () => {
+    await setUpPlaywrightProject(`export default defineConfig({\n  reporter: [["allure-playwright"]],\n});\n`);
+    for (const [name, version] of [
+      ["@playwright/test", "1.60.0"],
+      ["allure-playwright", "3.4.5"],
+    ]) {
+      await mkdir(join(tempDir, "node_modules", name), { recursive: true });
+      await writeFile(join(tempDir, "node_modules", name, "package.json"), JSON.stringify({ name, version }));
+    }
+
+    await run();
+
+    expect(output()).toContain("allure-playwright@3.4.5 is too old for @playwright/test@1.60.0");
+    expect(output()).toContain("Found 1 issue");
+  });
 });

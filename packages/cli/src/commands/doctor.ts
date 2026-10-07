@@ -1,5 +1,5 @@
 import * as console from "node:console";
-import { access } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { cwd as processCwd } from "node:process";
 
@@ -24,6 +24,16 @@ import {
 } from "@todti/allure-kit-npm";
 import { Command, Option } from "clipanion";
 
+import {
+  checkAdapterCompat,
+  checkAllureCliGeneration,
+  checkAllureJsVersionAlignment,
+  checkFrameworkCaveats,
+  checkConfigCombinations,
+  checkTestPlanEnv,
+  type DoctorFinding,
+} from "../doctor-checks.js";
+
 const moduleExists = async (moduleName: string, cwd: string): Promise<boolean> => {
   try {
     const modulePath = resolve(cwd, "node_modules", moduleName);
@@ -34,6 +44,27 @@ const moduleExists = async (moduleName: string, cwd: string): Promise<boolean> =
   } catch {
     return false;
   }
+};
+
+const reportFindings = (findings: DoctorFinding[]): number => {
+  let errors = 0;
+
+  for (const { level, message, hint } of findings) {
+    if (level === "error") {
+      logError(message);
+      errors++;
+    } else if (level === "warning") {
+      logWarning(message);
+    } else {
+      logInfo(message);
+    }
+
+    if (hint) {
+      logHint(hint);
+    }
+  }
+
+  return errors;
 };
 
 export class KitDoctorCommand extends Command {
@@ -152,6 +183,23 @@ export class KitDoctorCommand extends Command {
           logHint("The allure CLI bundles built-in plugins, so this might be fine");
         }
       }
+    }
+
+    logStep("Checking compatibility...");
+
+    const compatFindings = [
+      ...(await checkAdapterCompat(workingDir)),
+      ...(await checkAllureCliGeneration(workingDir)),
+      ...(await checkAllureJsVersionAlignment(workingDir)),
+      ...(existingConfig ? checkConfigCombinations(await readFile(existingConfig.path, "utf-8")) : []),
+      ...(await checkTestPlanEnv(process.env, workingDir)),
+      ...checkFrameworkCaveats(detectedFrameworks.map(({ framework }) => framework.id)),
+    ];
+
+    if (compatFindings.length === 0) {
+      logSuccess("No compatibility problems found");
+    } else {
+      issuesFound += reportFindings(compatFindings);
     }
 
     logStep("Checking for unused adapters...");
