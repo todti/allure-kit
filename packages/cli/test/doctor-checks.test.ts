@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   checkAdapterCompat,
+  checkAllureActionPermissions,
   checkAllureCliGeneration,
   checkAllureJsVersionAlignment,
   checkFrameworkCaveats,
@@ -163,6 +164,35 @@ describe("kit/doctor-checks", () => {
 
       expect(findings).toHaveLength(1);
       expect(findings[0].message).toContain('Plugin "gone" imports ./nope.js');
+    });
+  });
+
+  describe("checkAllureActionPermissions", () => {
+    const workflow = (extra: string, withBlock = "          github-token: ${{ secrets.GITHUB_TOKEN }}\n") =>
+      `name: ci\non: pull_request\n${extra}jobs:\n  report:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: allure-framework/allure-action@v0\n        with:\n${withBlock}`;
+    const check = (content: string) => checkAllureActionPermissions([{ file: ".github/workflows/ci.yml", content }]);
+
+    it("warns when the workflow has no permissions for comments and checks", () => {
+      const findings = check(workflow(""));
+
+      expect(findings).toHaveLength(1);
+      expect(findings[0].message).toContain("pull-requests: write and checks: write");
+    });
+
+    it("names only the missing scope", () => {
+      expect(check(workflow("permissions:\n  pull-requests: write\n"))[0].message).toContain("needs checks: write");
+    });
+
+    it("accepts workflow-level, job-level and write-all permissions", () => {
+      expect(check(workflow("permissions:\n  pull-requests: write\n  checks: write\n"))).toEqual([]);
+      expect(check(workflow("permissions: write-all\n"))).toEqual([]);
+      expect(check(workflow("").replace("    runs-on", "    permissions:\n      pull-requests: write\n      checks: write\n    runs-on"))).toEqual([]);
+    });
+
+    it("warns about a missing github-token input and ignores workflows without the action", () => {
+      expect(check(workflow("permissions: write-all\n", "          report-directory: ./allure-report\n"))[0].message).toContain("no github-token");
+      expect(check("name: x\non: push\njobs:\n  a:\n    steps:\n      - run: echo\n")).toEqual([]);
+      expect(check("{ not: yaml: [")).toEqual([]);
     });
   });
 
