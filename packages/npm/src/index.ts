@@ -3,3 +3,4 @@ export * from "./config-patchers.js";
 export * from "./detect-frameworks.js";
 export * from "./detect-package-manager.js";
 export * from "./registry.js";
+export * from "./detect-workspaces.js";

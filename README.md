@@ -95,6 +95,8 @@ Finds every installed Allure package (CLI, adapters, plugins) and updates them a
 
 ### `doctor`
 
+In a monorepo, when the root has no test framework, `init` and `doctor` look into npm/yarn/pnpm workspaces and tell you which packages to run them in (`--cwd packages/web`).
+
 ```bash
 allure-kit doctor [--lang js|ts|python] [--json] [--strict] [--cwd <path>]
 ```

@@ -192,4 +192,17 @@ describe("kit/doctor", () => {
       expect(output()).toContain("allure-behave is declared but behave was not found");
     });
   });
+
+  it("should point at workspace packages with a framework when the root has none", async () => {
+    await writeFile(join(tempDir, "package.json"), JSON.stringify({ workspaces: ["packages/*"] }));
+    await mkdir(join(tempDir, "packages", "web"), { recursive: true });
+    await writeFile(
+      join(tempDir, "packages", "web", "package.json"),
+      JSON.stringify({ devDependencies: { "@playwright/test": "^1.50.0" } }),
+    );
+
+    await run();
+
+    expect(output()).toContain("packages/web uses Playwright — run: allure-kit doctor --cwd packages/web");
+  });
 });

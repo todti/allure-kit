@@ -20,6 +20,7 @@ import {
   checkFrameworkWiring,
   detectFrameworks,
   detectInstalledAllurePackages,
+  detectWorkspaceFrameworks,
   FRAMEWORK_REGISTRY,
   npmAdapter,
 } from "@todti/allure-kit-npm";
@@ -113,6 +114,16 @@ const checkNpmEcosystem = async (workingDir: string, report: Reporter) => {
 
     if (detectedFrameworks.length === 0) {
       report.add("warning", "No test frameworks detected in package.json");
+
+      const workspaces = await detectWorkspaceFrameworks(workingDir);
+
+      if (workspaces.length > 0) {
+        report.hint(
+          workspaces
+            .map(({ dir, frameworks }) => `${dir} uses ${frameworks.map(({ framework }) => framework.displayName).join(", ")} — run: allure-kit doctor --cwd ${dir}`)
+            .join("\n    "),
+        );
+      }
     } else {
       for (const { framework } of detectedFrameworks) {
         const adapterInstalled = await moduleExists(framework.adapterPackage, workingDir);
