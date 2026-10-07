@@ -205,4 +205,31 @@ describe("kit/doctor", () => {
 
     expect(output()).toContain("packages/web uses Playwright — run: allure-kit doctor --cwd packages/web");
   });
+
+  describe("java projects", () => {
+    const gradleProject = (plugins: string) =>
+      writeFile(
+        join(tempDir, "build.gradle.kts"),
+        `plugins {\n${plugins}\n}\ndependencies { testImplementation("org.junit.jupiter:junit-jupiter:5.10.0") }\n`,
+      );
+
+    it("should accept a Gradle project with the Allure plugin applied", async () => {
+      await gradleProject('    id("io.qameta.allure") version "4.3.0"');
+
+      await run();
+
+      expect(output()).toContain("JUnit 5 → io.qameta.allure is declared in your dependencies");
+      expect(output()).not.toContain("is declared but");
+      expect(output()).toContain("No issues found");
+    });
+
+    it("should flag a Gradle project without the Allure plugin", async () => {
+      await gradleProject("    java");
+
+      await run();
+
+      expect(output()).toContain("JUnit 5 detected but io.qameta.allure is not in your dependencies");
+      expect(output()).toContain("Run: allure-kit init");
+    });
+  });
 });

@@ -10,6 +10,7 @@ export default defineConfig({
       "@todti/allure-kit-core": resolvePath("./packages/core/src/index.ts"),
       "@todti/allure-kit-npm": resolvePath("./packages/npm/src/index.ts"),
       "@todti/allure-kit-python": resolvePath("./packages/python/src/index.ts"),
+      "@todti/allure-kit-java": resolvePath("./packages/java/src/index.ts"),
     },
   },
   test: {

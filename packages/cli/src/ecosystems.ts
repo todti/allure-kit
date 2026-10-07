@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 
 import { type EcosystemAdapter, fileExists } from "@todti/allure-kit-core";
 import { npmAdapter } from "@todti/allure-kit-npm";
+import { javaAdapter } from "@todti/allure-kit-java";
 import { pythonAdapter } from "@todti/allure-kit-python";
 
 /**
@@ -11,7 +12,7 @@ import { pythonAdapter } from "@todti/allure-kit-python";
  * means implementing one more EcosystemAdapter and appending it here — no
  * other change to init.ts's control flow.
  */
-export const ECOSYSTEMS: EcosystemAdapter[] = [npmAdapter, pythonAdapter];
+export const ECOSYSTEMS: EcosystemAdapter[] = [npmAdapter, pythonAdapter, javaAdapter];
 
 /**
  * Without an explicit --lang, check each ecosystem's manifest files in

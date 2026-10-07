@@ -127,7 +127,7 @@ export class KitInitCommand extends Command {
 
     const existingConfig = await findExistingConfig(workingDir);
 
-    if (existingConfig) {
+    if (existingConfig && !ecosystem.setupViaBuildFile) {
       logSuccess(`Allure is already configured (${existingConfig.path}).`);
       logInfo('Run "allure-kit doctor" to verify or "allure-kit update" to upgrade.');
       return;
@@ -249,7 +249,9 @@ export class KitInitCommand extends Command {
     const packageManager = await ecosystem.detectPackageManager(workingDir);
     const packagesToInstall = [...ecosystem.alwaysInstallPackages, ...selectedAdapters];
 
-    if (packagesToInstall.length > 0 && dryRun) {
+    if (ecosystem.setupViaBuildFile) {
+      // Dependencies come from the build file edit below; there is no install command to run.
+    } else if (packagesToInstall.length > 0 && dryRun) {
       logInfo(`would run: ${ecosystem.getInstallCommand(packageManager, packagesToInstall, true)}`);
     } else if (packagesToInstall.length > 0) {
       const installCommand = ecosystem.getInstallCommand(packageManager, packagesToInstall, true);
@@ -317,6 +319,10 @@ export class KitInitCommand extends Command {
 
         logHint(`${framework.displayName}: ${framework.setupHint}`);
       }
+    }
+
+    if (ecosystem.setupViaBuildFile) {
+      return;
     }
 
     const config = buildAllureConfig(reportName, selectedPluginIds);

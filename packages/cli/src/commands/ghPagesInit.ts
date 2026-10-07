@@ -16,7 +16,7 @@ import {
   writeAllureConfig,
 } from "@todti/allure-kit-core";
 import { detectPackageManager } from "@todti/allure-kit-npm";
-import { Command, Option } from "clipanion";
+import { Command, Option, UsageError } from "clipanion";
 import prompts from "prompts";
 
 import { getInstallCommand, getPythonInstallCommand, getPythonTestCommand, getTestCommand } from "./ciShared.js";
@@ -192,6 +192,12 @@ export class KitGhPagesInitCommand extends Command {
     logStep("Preparing GitHub Pages workflow...");
 
     const ecosystem = await resolveEcosystem(workingDir, typeof this.lang === "string" ? this.lang : undefined);
+    if (ecosystem.setupViaBuildFile) {
+      throw new UsageError(
+        `CI scaffolding isn't available for ${ecosystem.displayName} projects yet. With Gradle the report task is "./gradlew test allureReport", publishing build/reports/allure-report/allureReport/.`,
+      );
+    }
+
     const python = ecosystem.id !== "npm";
     const packageManager = python ? await ecosystem.detectPackageManager(workingDir) : await detectPackageManager(workingDir);
     const defaultBranch = typeof this.defaultBranch === "string" ? this.defaultBranch : "main";

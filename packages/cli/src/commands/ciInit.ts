@@ -189,6 +189,12 @@ export class KitCiInitCommand extends Command {
     console.log(`\n  Allure CI Setup (${provider.description})\n`);
 
     const ecosystem = await resolveEcosystem(workingDir, typeof this.lang === "string" ? this.lang : undefined);
+    if (ecosystem.setupViaBuildFile) {
+      throw new UsageError(
+        `CI scaffolding isn't available for ${ecosystem.displayName} projects yet. With Gradle the report task is "./gradlew test allureReport", publishing build/reports/allure-report/allureReport/.`,
+      );
+    }
+
     const python = ecosystem.id !== "npm";
     const packageManager = await ecosystem.detectPackageManager(workingDir);
     const plan: CiPlan = {

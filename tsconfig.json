@@ -4,6 +4,7 @@
     { "path": "./packages/core" },
     { "path": "./packages/npm" },
     { "path": "./packages/python" },
+    { "path": "./packages/java" },
     { "path": "./packages/cli" }
   ]
 }
