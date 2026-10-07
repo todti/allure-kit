@@ -75,7 +75,7 @@ Allure 3's report generator (`allure generate`) is a Node.js CLI regardless of t
 allure-kit init [--lang js|ts|python] [--framework <id>] [--format json|yaml|mjs] [--yes] [--dry-run] [--cwd <path>]
 ```
 
-Detects test frameworks (by dependencies, config files, and existing tests), installs matching adapters, and creates an `allurerc` config. `init` does **not** generate any demo tests — it only configures Allure. Sample tests live in a separate repository.
+Detects test frameworks (by dependencies, config files, and existing tests), installs matching adapters, and creates an `allurerc` config. After wiring, `init` prints the official Allure configuration page for each selected framework (adapter options and examples). `init` does **not** generate any demo tests — it only configures Allure. Sample tests live in a separate repository.
 
 Flags:
 - `--lang` — project language: `js`/`ts` (treated the same) or `python`/`py`. Without this flag, `init` auto-detects: `package.json` present → JS/TS, otherwise a Python manifest (`pyproject.toml`, `requirements*.txt`, `Pipfile`, `setup.py`/`setup.cfg`) present → Python, otherwise defaults to JS/TS.
