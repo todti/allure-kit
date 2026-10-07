@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { parse as parseYaml } from "yaml";
 import { describe, expect, it, vi } from "vitest";
 
 import { KitGitlabInitCommand } from "../src/commands/gitlabInit.js";
@@ -63,6 +64,27 @@ describe("kit/gitlab-init", () => {
       expect(job).toContain("image: node:22");
       expect(job).toContain("--config ./allurerc.mjs");
       expect(job).toContain("npm run e2e || TESTS_FAILED=1");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("scaffolds a Python job: python image, Node from NodeSource, the project's installer and framework command", async () => {
+    const dir = await run(
+      (d) => writeFile(join(d, "requirements.txt"), "pytest\nallure-pytest\n"),
+      () => undefined,
+    );
+
+    try {
+      const job = parseYaml(await readFile(join(dir, ".gitlab", "allure-report.gitlab-ci.yml"), "utf-8"));
+      const script: string[] = job["allure-report"].script;
+
+      expect(job["allure-report"].image).toBe("python:3.12");
+      expect(script).toContain("curl -fsSL https://deb.nodesource.com/setup_20.x | bash -");
+      expect(script.indexOf("apt-get install -y -qq nodejs")).toBeLessThan(script.indexOf("pip install -r requirements.txt"));
+      expect(script).toContain("pytest --alluredir=allure-results || TESTS_FAILED=1");
+      expect(script.some((line) => line.startsWith("npx --yes allure gitlab ./allure-results"))).toBe(true);
+      expect(script.at(-1)).toBe('test -z "$TESTS_FAILED"');
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
