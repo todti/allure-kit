@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 
+import { javaAdapter } from "@todti/allure-kit-java";
 import { npmAdapter } from "@todti/allure-kit-npm";
 import { pythonAdapter } from "@todti/allure-kit-python";
 
 import { ECOSYSTEMS } from "../src/ecosystems.js";
 
 describe("kit/ecosystems", () => {
-  it("should register npm first and python second (auto-detect priority)", () => {
-    expect(ECOSYSTEMS).toEqual([npmAdapter, pythonAdapter]);
+  it("should register npm first, then python, then java (auto-detect priority)", () => {
+    expect(ECOSYSTEMS).toEqual([npmAdapter, pythonAdapter, javaAdapter]);
   });
 
   it("should have unique ids", () => {

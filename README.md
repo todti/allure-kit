@@ -15,6 +15,8 @@ A standalone CLI that sets up and maintains [Allure Report 3](https://allurerepo
 - keeps all installed Allure packages up to date (`update`),
 - scaffolds a GitHub Actions workflow that publishes reports to GitHub Pages.
 
+Java (Gradle) projects are supported too: `init --lang java` adds the official `io.qameta.allure` Gradle plugin to `build.gradle(.kts)` (it brings the JUnit 5/TestNG adapter, the AspectJ agent and its own Node.js), `doctor` checks the plugin, the Gradle wrapper version (≥ 8.11) and `autoconfigure`. Maven projects are detected and get the manual setup steps; `pom.xml` is not patched automatically.
+
 Detected frameworks: Vitest, Playwright, Jest, Mocha, Cypress, Cucumber.js, Jasmine, CodeceptJS, Newman (Postman), and WebdriverIO (WDIO) for JS/TS; Behave, pytest, Pytest-BDD, and Robot Framework for Python.
 
 ## How it works

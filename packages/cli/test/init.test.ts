@@ -188,6 +188,24 @@ describe("kit/init", () => {
     expect(output).toContain("would create allurerc.json");
   });
 
+  it("should wire the Allure Gradle plugin into build.gradle.kts without installing anything or creating allurerc", async () => {
+    await writeFile(
+      join(tempDir, "build.gradle.kts"),
+      'plugins {\n    java\n}\n\ntests { useJUnitPlatform() }\ndependencies { testImplementation("org.junit.jupiter:junit-jupiter:5.10.0") }\n',
+    );
+
+    const command = new KitInitCommand();
+    command.cwd = tempDir;
+    command.yes = true;
+    command.lang = "java";
+
+    await command.execute();
+
+    expect(executeCommand).not.toHaveBeenCalled();
+    expect(await readFile(join(tempDir, "build.gradle.kts"), "utf-8")).toContain('id("io.qameta.allure") version "4.3.0"');
+    expect(await fileExists(join(tempDir, "allurerc.json"))).toBe(false);
+  });
+
   it("should point at the official configuration page of each selected framework", async () => {
     await writeFile(join(tempDir, "package.json"), JSON.stringify({ devDependencies: { "@playwright/test": "^1.50.0" } }));
     await writeFile(join(tempDir, "playwright.config.ts"), `export default defineConfig({\n  testDir: "./tests",\n});\n`);

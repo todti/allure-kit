@@ -69,4 +69,20 @@ export interface EcosystemAdapter<PackageManager extends string = string> {
    * the framework's `setupHint` printed as a manual step.
    */
   patchFrameworkConfig?(cwd: string, framework: FrameworkDescriptor, write?: FileWriter): Promise<ConfigPatchOutcome>;
+  /**
+   * True when "installing the adapter" means editing a build file (Gradle/Maven) rather than running a
+   * package-manager command: `init` then skips the install step and `allurerc` generation, and relies on
+   * `patchFrameworkConfig` alone.
+   */
+  setupViaBuildFile?: boolean;
+  /** Whether the framework's Allure adapter is already set up in the project (used by `doctor` for non-npm ecosystems). */
+  isAdapterConfigured?(cwd: string, framework: FrameworkDescriptor): Promise<boolean>;
+  /** Ecosystem-specific health checks for `doctor` (runtime/tool versions and the like). */
+  diagnose?(cwd: string): Promise<EcosystemFinding[]>;
+}
+
+export interface EcosystemFinding {
+  level: "error" | "warning" | "info";
+  message: string;
+  hint?: string;
 }
