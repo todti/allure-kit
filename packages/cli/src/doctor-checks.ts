@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 
 export interface DoctorFinding {
   level: "error" | "warning" | "info";
@@ -226,3 +226,23 @@ const FRAMEWORK_CAVEATS: Record<string, string[]> = {
 /** Verified limitations of specific adapters; informational only, nothing the user can fix in their config. */
 export const checkFrameworkCaveats = (frameworkIds: string[]): DoctorFinding[] =>
   frameworkIds.flatMap((id) => (FRAMEWORK_CAVEATS[id] ?? []).map((message) => ({ level: "info" as const, message: `${id}: ${message}` })));
+
+/** A custom plugin's `import` that points at a missing local file only fails later, deep inside `allure generate` (allure3#598). */
+export const checkPluginImports = (config: { plugins?: Record<string, { import?: unknown }> }, cwd: string): DoctorFinding[] =>
+  Object.entries(config.plugins ?? {}).flatMap(([id, entry]) => {
+    const target = entry?.import;
+
+    if (typeof target !== "string" || !(target.startsWith(".") || isAbsolute(target))) {
+      return [];
+    }
+
+    return existsSync(resolve(cwd, target))
+      ? []
+      : [
+          {
+            level: "error" as const,
+            message: `Plugin "${id}" imports ${target}, but that file doesn't exist`,
+            hint: "Fix the path in allurerc (it is resolved from the directory you run allure in)",
+          },
+        ];
+  });

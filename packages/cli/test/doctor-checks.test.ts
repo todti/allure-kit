@@ -9,6 +9,7 @@ import {
   checkAllureCliGeneration,
   checkAllureJsVersionAlignment,
   checkFrameworkCaveats,
+  checkPluginImports,
   checkConfigCombinations,
   checkTestPlanEnv,
   compareVersions,
@@ -147,6 +148,20 @@ describe("kit/doctor-checks", () => {
 
       expect(findings.every((f) => f.level === "info")).toBe(true);
       expect(findings.map((f) => f.message.split(":")[0])).toEqual(["newman", "newman", "jest"]);
+    });
+  });
+
+  describe("checkPluginImports", () => {
+    it("errors on a relative plugin import that doesn't exist and ignores package names", async () => {
+      await writeFile(join(dir, "my-plugin.js"), "");
+
+      const findings = checkPluginImports(
+        { plugins: { mine: { import: "./my-plugin.js" }, gone: { import: "./nope.js" }, pkg: { import: "@scope/plugin" }, awesome: {} } },
+        dir,
+      );
+
+      expect(findings).toHaveLength(1);
+      expect(findings[0].message).toContain('Plugin "gone" imports ./nope.js');
     });
   });
 });

@@ -13,10 +13,16 @@ import { Command, Option, UsageError } from "clipanion";
 
 /** Top-level allurerc settings that `config set` manages (dotted keys address nested objects). */
 export const CONFIG_KEYS = [
+  "name",
+  "output",
   "resultsDir",
   "historyPath",
+  "appendHistory",
+  "historyLimit",
   "historyBaseUrl",
   "knownIssuesPath",
+  "environment",
+  "port",
   "flakyDetection.historyDepth",
   "flakyDetection.includePassedTests",
 ];

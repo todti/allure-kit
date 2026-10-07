@@ -96,12 +96,12 @@ Finds every installed Allure package (CLI, adapters, plugins) and updates them a
 ### `doctor`
 
 ```bash
-allure-kit doctor [--json] [--strict] [--cwd <path>]
+allure-kit doctor [--lang js|ts|python] [--json] [--strict] [--cwd <path>]
 ```
 
 Checks: package manager detection, `allurerc` presence and validity, adapter packages for each detected framework, the `allure` CLI package, configured plugin packages, and adapters that are installed but no longer match a detected framework.
 
-It also looks for combinations that fail silently: an adapter too old for the installed framework (currently `allure-playwright` < 3.9.0 with Playwright ≥ 1.60, where selective test-plan runs stop working), `allure-js` adapters on a different minor version than `allure-js-commons`, `qualityGate` combined with `historyPath` (known upstream issue [allure3#895](https://github.com/allure-framework/allure3/issues/895)), an `ALLURE_TESTPLAN_PATH` that points to a missing or invalid file, an `allure` package older than v3 or `allure-commandline` (Allure 2) installed next to it. It also lists known adapter limitations for the detected frameworks (no retry marking in Jest/Vitest, no test-plan support in CodeceptJS/Newman, Newman not writing `environmentInfo`/`categories`).
+It also looks for combinations that fail silently: an adapter too old for the installed framework (currently `allure-playwright` < 3.9.0 with Playwright ≥ 1.60, where selective test-plan runs stop working), `allure-js` adapters on a different minor version than `allure-js-commons`, `qualityGate` combined with `historyPath` (known upstream issue [allure3#895](https://github.com/allure-framework/allure3/issues/895)), an `ALLURE_TESTPLAN_PATH` that points to a missing or invalid file, a custom plugin `import` that points to a missing local file, an `allure` package older than v3 or `allure-commandline` (Allure 2) installed next to it. It also lists known adapter limitations for the detected frameworks (no retry marking in Jest/Vitest, no test-plan support in CodeceptJS/Newman, Newman not writing `environmentInfo`/`categories`).
 
 `--json` prints every check (step, level, message, hint) as JSON for CI and scripts; `--strict` makes the command exit with code 1 when issues are found.
 
@@ -110,7 +110,7 @@ It also looks for combinations that fail silently: an adapter too old for the in
 Creates a GitHub Actions workflow that generates an Allure report and publishes it to GitHub Pages via the `gh-pages` branch. If the tests fail, the report is still generated and published, and the job fails afterwards. History is kept between runs by caching the `historyPath` file (`init` sets `historyPath: ./history.jsonl` in a JSON/YAML `allurerc` if it's missing; for an ESM config it prints a hint).
 
 ```bash
-allure-kit gh-pages init [--yes] [--branch <name>] [--config <path>] [--test-command <cmd>] [--cwd <path>]
+allure-kit gh-pages init [--lang js|ts|python] [--yes] [--branch <name>] [--config <path>] [--test-command <cmd>] [--cwd <path>]
 ```
 
 ### `gitlab init`
@@ -123,7 +123,7 @@ allure-kit gitlab init [--yes] [--image <image>] [--config <path>] [--test-comma
 
 ### `config get` / `config set` / `config list` / `config unset`
 
-Read, write, list or remove top-level `allurerc` options (`resultsDir`, `historyPath`, `historyBaseUrl`, `knownIssuesPath`, `flakyDetection.historyDepth`, `flakyDetection.includePassedTests`). JSON/YAML configs only.
+Read, write, list or remove top-level `allurerc` options (`name`, `output`, `resultsDir`, `historyPath`, `appendHistory`, `historyLimit`, `historyBaseUrl`, `knownIssuesPath`, `environment`, `port`, `flakyDetection.historyDepth`, `flakyDetection.includePassedTests`). JSON/YAML configs only.
 
 ```bash
 allure-kit config set flakyDetection.historyDepth 10
@@ -186,7 +186,7 @@ Python:
 
 Python package managers pip, [Poetry](https://python-poetry.org/), [PDM](https://pdm-project.org/), and [Pipenv](https://pipenv.pypa.io/) are auto-detected the same way as the npm-family managers. `pip install` doesn't update any manifest on its own, so when pip is the resolved manager `init` also appends the installed adapter(s) to `requirements.txt`.
 
-`doctor` and `gh-pages init` are JS/TS-only for now — they don't yet verify Python adapter installs or scaffold a Python CI workflow.
+`doctor` works for Python projects too: it checks that each detected framework's adapter is declared in your dependencies (`requirements*.txt`, `pyproject.toml`, `Pipfile`) and reminds you that reports need the Node.js Allure CLI. `gh-pages init` also scaffolds a Python workflow (`actions/setup-python`, the project's own installer, the framework's `--alluredir`/formatter command, Node for `npx allure generate`); `gitlab init` is still JS/TS-only.
 
 ## Report plugins
 

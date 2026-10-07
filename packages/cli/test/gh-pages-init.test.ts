@@ -101,4 +101,29 @@ describe("kit/gh-pages-init", () => {
       await rm(tempDir, { recursive: true, force: true });
     }
   });
+
+  it("should scaffold a Python workflow with setup-python, the project's own installer and the right test command", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "allure-kit-gh-pages-"));
+
+    try {
+      await writeFile(join(tempDir, "pyproject.toml"), '[tool.poetry]\nname = "x"\n\n[tool.poetry.dependencies]\nbehave = "*"\n');
+      await writeFile(join(tempDir, "poetry.lock"), "");
+
+      const command = new KitGhPagesInitCommand();
+      command.cwd = tempDir;
+      command.yes = true;
+
+      await command.execute();
+
+      const workflow = await readFile(join(tempDir, ".github", "workflows", "allure-gh-pages.yml"), "utf-8");
+
+      expect(workflow).toContain("uses: actions/setup-python@v5");
+      expect(workflow).toContain("run: pip install poetry && poetry install");
+      expect(workflow).toContain("run: poetry run behave -f allure_behave.formatter:AllureFormatter -o allure-results");
+      expect(workflow).toContain("run: npx --yes allure generate --output ./allure-report");
+      expect(workflow).not.toContain("cache:");
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
 });

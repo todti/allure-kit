@@ -1,4 +1,6 @@
-import type { EcosystemAdapter } from "@todti/allure-kit-core";
+import { resolve } from "node:path";
+
+import { type EcosystemAdapter, fileExists } from "@todti/allure-kit-core";
 import { npmAdapter } from "@todti/allure-kit-npm";
 import { pythonAdapter } from "@todti/allure-kit-python";
 
@@ -10,3 +12,28 @@ import { pythonAdapter } from "@todti/allure-kit-python";
  * other change to init.ts's control flow.
  */
 export const ECOSYSTEMS: EcosystemAdapter[] = [npmAdapter, pythonAdapter];
+
+/**
+ * Without an explicit --lang, check each ecosystem's manifest files in
+ * registration order (ECOSYSTEMS[0] = npm, matching the long-standing
+ * default-to-npm behavior) and default to the first ecosystem if none match.
+ */
+export const resolveEcosystem = async (cwd: string, lang: string | undefined): Promise<EcosystemAdapter> => {
+  if (lang) {
+    const match = ECOSYSTEMS.find((ecosystem) => ecosystem.langAliases.includes(lang));
+
+    if (match) {
+      return match;
+    }
+  }
+
+  for (const ecosystem of ECOSYSTEMS) {
+    for (const filename of ecosystem.manifestFiles) {
+      if (await fileExists(resolve(cwd, filename))) {
+        return ecosystem;
+      }
+    }
+  }
+
+  return ECOSYSTEMS[0];
+};
