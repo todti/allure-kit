@@ -20,6 +20,7 @@ import {
   serializeConfig,
   writeAllureConfig,
 } from "@todti/allure-kit-core";
+import { detectWorkspaceFrameworks } from "@todti/allure-kit-npm";
 import { Command, Option, UsageError } from "clipanion";
 import prompts from "prompts";
 
@@ -143,6 +144,12 @@ export class KitInitCommand extends Command {
       }
     } else if (!forcedFramework) {
       logWarning("No test frameworks detected");
+
+      if (ecosystem.id === "npm") {
+        for (const { dir, frameworks } of await detectWorkspaceFrameworks(workingDir)) {
+          logHint(`Monorepo package ${dir} uses ${frameworks.map(({ framework }) => framework.displayName).join(", ")} — run: allure-kit init --cwd ${dir}`);
+        }
+      }
     }
 
     const nonInteractive = this.yes === true || forcedFramework !== undefined;
