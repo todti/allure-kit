@@ -39,6 +39,8 @@ import {
   checkPlaywrightFullName,
   checkPluginImports,
   checkTestOpsPlugin,
+  checkResultsDirAgreement,
+  checkUnsupportedConfigFields,
   checkConfigCombinations,
   checkTestPlanEnv,
   readGithubWorkflows,
@@ -109,6 +111,26 @@ const createReporter = (json: boolean) => {
 };
 
 type Reporter = ReturnType<typeof createReporter>;
+
+const readFrameworkConfigs = async (
+  workingDir: string,
+  detected: { framework: { id: string; configFilePatterns: string[] } }[],
+): Promise<{ framework: string; source: string }[]> => {
+  const result: { framework: string; source: string }[] = [];
+
+  for (const { framework } of detected) {
+    for (const pattern of framework.configFilePatterns) {
+      try {
+        result.push({ framework: framework.id, source: await readFile(resolve(workingDir, pattern), "utf-8") });
+        break;
+      } catch {
+        // try the next candidate
+      }
+    }
+  }
+
+  return result;
+};
 
 const readPlaywrightConfig = async (workingDir: string): Promise<string | null> => {
   const playwright = FRAMEWORK_REGISTRY.find((framework) => framework.id === "playwright");
@@ -385,6 +407,8 @@ export class KitDoctorCommand extends Command {
       ...(await checkAllureJsVersionAlignment(workingDir)),
       ...(existingConfig ? checkConfigCombinations(await readFile(existingConfig.path, "utf-8")) : []),
       ...(parsedConfig ? checkPluginImports(parsedConfig, workingDir) : []),
+      ...(parsedConfig ? checkUnsupportedConfigFields(parsedConfig) : []),
+      ...checkResultsDirAgreement(await readFrameworkConfigs(workingDir, detectedFrameworks), parsedConfig),
       ...checkAllureActionPermissions(await readGithubWorkflows(workingDir)),
       ...checkPlaywrightFullName(
         (await readPlaywrightConfig(workingDir)) ?? "",

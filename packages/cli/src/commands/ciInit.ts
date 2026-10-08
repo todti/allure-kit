@@ -1,10 +1,17 @@
-import * as console from "node:console";
 import { existsSync, mkdirSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { cwd as processCwd } from "node:process";
 
-import { logHint, logInfo, logNewLine, logStep, logSuccess, logWarning } from "@todti/allure-kit-core";
+import {
+  logHint,
+  logInfo,
+  logNewLine,
+  logStep,
+  logSuccess,
+  logWarning,
+  print,
+} from "@todti/allure-kit-core";
 import { Command, Option, UsageError } from "clipanion";
 import prompts from "prompts";
 
@@ -222,7 +229,7 @@ export class KitCiInitCommand extends Command {
     const workingDir = typeof this.cwd === "string" ? this.cwd : processCwd();
     const target = resolve(workingDir, provider.file);
 
-    console.log(`\n  Allure CI Setup (${provider.description})\n`);
+    print(`\n  Allure CI Setup (${provider.description})\n`);
 
     const ecosystem = await resolveEcosystem(workingDir, typeof this.lang === "string" ? this.lang : undefined);
     const packageManager = await ecosystem.detectPackageManager(workingDir);

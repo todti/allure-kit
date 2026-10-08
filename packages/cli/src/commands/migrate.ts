@@ -1,4 +1,3 @@
-import * as console from "node:console";
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { cwd as processCwd } from "node:process";
@@ -14,6 +13,7 @@ import {
   logStep,
   logSuccess,
   logWarning,
+  print,
   writeAllureConfig,
 } from "@todti/allure-kit-core";
 import { detectPackageManager, getInstallCommand, getRemoveCommand } from "@todti/allure-kit-npm";
@@ -95,7 +95,7 @@ export class KitMigrateCommand extends Command {
     const packageJsonPath = resolve(workingDir, "package.json");
     let raw: string;
 
-    console.log(`\n  Allure 2 → 3 Migration${dryRun ? " (dry run — nothing will be changed)" : ""}\n`);
+    print(`\n  Allure 2 → 3 Migration${dryRun ? " (dry run — nothing will be changed)" : ""}\n`);
 
     try {
       raw = await readFile(packageJsonPath, "utf-8");
@@ -137,7 +137,7 @@ export class KitMigrateCommand extends Command {
 
           if (result.exitCode !== 0) {
             logError(`${command} failed:`);
-            console.log(result.stderr);
+            print(result.stderr);
 
             return;
           }

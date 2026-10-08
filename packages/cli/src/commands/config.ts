@@ -24,7 +24,6 @@ export const CONFIG_KEYS = [
   "appendHistory",
   "historyLimit",
   "historyBaseUrl",
-  "knownIssuesPath",
   "environment",
   "port",
   "flakyDetection.historyDepth",
