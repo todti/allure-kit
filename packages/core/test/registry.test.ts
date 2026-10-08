@@ -57,4 +57,17 @@ describe("kit/registry", () => {
       expect(defaultIds).toContain("awesome");
     });
   });
+
+  it("documents how the TestOps plugin reads its settings (ALLURE_* variables) and that it only runs in CI", () => {
+    const testops = REPORT_PLUGIN_REGISTRY.find((plugin) => plugin.id === "testops")!;
+    const envVars = Object.fromEntries((testops.options ?? []).map((option) => [option.name, option.envVar]));
+
+    expect(envVars).toEqual({
+      endpoint: "ALLURE_ENDPOINT",
+      accessToken: "ALLURE_TOKEN",
+      projectId: "ALLURE_PROJECT_ID",
+      launchName: "ALLURE_LAUNCH_NAME",
+    });
+    expect(testops.note).toContain("ALLURE_TESTOPS_ENABLED");
+  });
 });

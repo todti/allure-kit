@@ -215,6 +215,11 @@ export class KitPluginAddCommand extends Command {
         }
       }
 
+      if (pluginDescriptor.note) {
+        logNewLine();
+        logInfo(pluginDescriptor.note);
+      }
+
       const envVarOptions = pluginOptions.filter((o) => o.envVar);
 
       if (envVarOptions.length > 0) {
