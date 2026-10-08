@@ -145,10 +145,12 @@ Writes one tiny passing test for each detected framework (or the one given with 
 
 ### `gh-pages init`
 
+With `--pr-comments` the workflow also runs on pull requests and posts the test summary as a comment and a check via [`allure-framework/allure-action`](https://allurereport.org/docs/integrations-github-action/) (it adds `pull-requests: write` / `checks: write`); pull-request runs are not published to Pages and do not touch the cached history.
+
 Creates a GitHub Actions workflow that generates an Allure report and publishes it to GitHub Pages via the `gh-pages` branch. If the tests fail, the report is still generated and published, and the job fails afterwards. History is kept between runs by caching the `historyPath` file (`init` sets `historyPath: ./history.jsonl` in a JSON/YAML `allurerc` if it's missing; for an ESM config it prints a hint).
 
 ```bash
-allure-kit gh-pages init [--lang js|ts|python] [--yes] [--branch <name>] [--config <path>] [--test-command <cmd>] [--cwd <path>]
+allure-kit gh-pages init [--lang js|ts|python] [--pr-comments] [--yes] [--branch <name>] [--config <path>] [--test-command <cmd>] [--cwd <path>]
 ```
 
 ### `ci init <provider>`
