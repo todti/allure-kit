@@ -323,6 +323,19 @@ scenario("wdio: init adds the allure reporter to a CommonJS config that still lo
   assert(/spec/.test(loaded.output), "the existing reporter was kept");
 });
 
+// For scripts and AI agents: the same work, reported as data instead of colored text.
+scenario("--json: init returns a structured result", (dir) => {
+  write(dir, "package.json", JSON.stringify({ name: "e2e-json", private: true, type: "module", devDependencies: { vitest: version("^3.0.0") } }));
+  write(dir, "vitest.config.ts", 'import { defineConfig } from "vitest/config";\n\nexport default defineConfig({\n  test: {},\n});\n');
+  run(dir, "npm", ["install", "--no-audit", "--no-fund"]);
+
+  const result = JSON.parse(kit(dir, "init", "--yes", "--json").output);
+
+  assert(result.ok === true, "ok is true");
+  assert(result.messages.some((m) => m.level === "success" && /created allurerc\.json/.test(m.message)), "the result lists what was created");
+  assert(existsSync(join(dir, "allurerc.json")), "the work was really done");
+});
+
 // The commands that edit allurerc, checked by what Allure actually does with the result.
 scenario("config + plugin: history accumulates across runs and the csv plugin writes its file", (dir) => {
   write(dir, "package.json", JSON.stringify({ name: "e2e-history", private: true, type: "module", devDependencies: { vitest: version("^3.0.0") } }));
