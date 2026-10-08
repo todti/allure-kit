@@ -94,7 +94,7 @@ Allure 3's report generator (`allure generate`) is a Node.js CLI regardless of t
 ### `init`
 
 ```bash
-allure-kit init [--lang js|ts|python] [--framework <id>] [--format json|yaml|mjs] [--yes] [--dry-run] [--cwd <path>]
+allure-kit init [--lang js|ts|python] [--framework <id>] [--format json|yaml|mjs] [--yes] [--dry-run] [--workspaces] [--cwd <path>]
 ```
 
 Detects test frameworks (by dependencies, config files, and existing tests), installs matching adapters, and creates an `allurerc` config. After wiring, `init` prints the official Allure configuration page for each selected framework (adapter options and examples). `init` does **not** generate any tests — it only configures Allure; run `allure-kit demo` afterwards if you want a minimal passing test to see a report right away.
@@ -104,6 +104,7 @@ Flags:
 - `--framework` — force-pick a single framework by id or package name (`playwright`, `vitest`, `wdio`, `pytest`, `behave`, ...). Implies non-interactive mode with the default `awesome` plugin.
 - `--format` — `json` (default), `yaml`, or `mjs` config format.
 - `--yes` — accept defaults without prompts.
+- `--workspaces` — in an npm/yarn/pnpm monorepo, run `init` (with the same flags) in every workspace package that has a test framework, each getting its own `allurerc`.
 - `--dry-run` — print the install command, a diff of every framework config it would change, and the `allurerc` it would create, without touching anything.
 - `--cwd` — working directory.
 

@@ -13,6 +13,7 @@ import {
   logError,
   logHint,
   logInfo,
+  logStep,
   logSuccess,
   logWarning,
   print,
@@ -77,6 +78,10 @@ export class KitInitCommand extends Command {
     description: "Force-select a single framework (e.g. playwright, vitest, wdio, pytest, behave)",
   });
 
+  workspaces = Option.Boolean("--workspaces", false, {
+    description: "In a monorepo, run init in every workspace package that has a test framework",
+  });
+
   dryRun = Option.Boolean("--dry-run", false, {
     description: "Show what would be installed and changed without touching any files",
   });
@@ -85,11 +90,45 @@ export class KitInitCommand extends Command {
     description: "Working directory (default: current directory)",
   });
 
+  /** Runs the normal init (same flags) in each workspace package that has a test framework. */
+  private async initWorkspaces(workingDir: string) {
+    const packages = await detectWorkspaceFrameworks(workingDir);
+
+    if (packages.length === 0) {
+      logWarning("No workspace package with a test framework found (looked at npm/yarn/pnpm workspaces).");
+
+      return;
+    }
+
+    for (const { dir, frameworks } of packages) {
+      logStep(`${dir} (${frameworks.map(({ framework }) => framework.displayName).join(", ")})`);
+
+      const child = new KitInitCommand();
+
+      child.cwd = resolve(workingDir, dir);
+      child.yes = this.yes === true;
+      child.dryRun = this.dryRun === true;
+      child.workspaces = false;
+
+      if (typeof this.format === "string") {
+        child.format = this.format;
+      }
+
+      await child.execute();
+    }
+  }
+
   async execute() {
     const workingDir = typeof this.cwd === "string" ? this.cwd : cwdDefault();
     const dryRun = this.dryRun === true;
 
     print(`\n  Allure 3 Setup${dryRun ? " (dry run — nothing will be changed)" : ""}\n`);
+
+    if (this.workspaces === true) {
+      await this.initWorkspaces(workingDir);
+
+      return;
+    }
 
     const supportedLangs = ECOSYSTEMS.flatMap((ecosystem) => ecosystem.langAliases);
 
