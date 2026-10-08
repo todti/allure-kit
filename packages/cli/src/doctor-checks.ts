@@ -418,3 +418,93 @@ export const checkReportLayout = (pluginIds: string[], output: string | undefine
       ]
     : [];
 };
+
+/**
+ * Top-level `allurerc` fields that Allure 3.20 accepts (`validateConfig` in @allurereport/core): any other key makes
+ * every command fail with "The provided Allure config contains unsupported fields". `knownIssuesPath`, for example,
+ * is not one of them (known issues live under `resolutions`).
+ */
+export const ALLURE_SUPPORTED_CONFIG_FIELDS = [
+  "name",
+  "output",
+  "open",
+  "port",
+  "hideLabels",
+  "historyPath",
+  "historyBaseUrl",
+  "historyLimit",
+  "flakyDetection",
+  "resolutions",
+  "plugins",
+  "defaultLabels",
+  "variables",
+  "environment",
+  "allowedEnvironments",
+  "environments",
+  "appendHistory",
+  "qualityGate",
+  "performance",
+  "allureService",
+  "categories",
+  "globalAttachments",
+  "resultsDir",
+  "dump",
+];
+
+export const checkUnsupportedConfigFields = (config: Record<string, unknown>): DoctorFinding[] => {
+  const unsupported = Object.keys(config).filter((key) => !ALLURE_SUPPORTED_CONFIG_FIELDS.includes(key));
+
+  return unsupported.length === 0
+    ? []
+    : [
+        {
+          level: "error",
+          message: `allurerc has fields Allure 3.20 rejects: ${unsupported.join(", ")} — every allure command fails with "unsupported fields"`,
+          hint: "Remove them (known issues belong under `resolutions`, or use `allure generate --known-issues <file>`); a newer Allure may accept more fields",
+        },
+      ];
+};
+
+const normalizeDir = (dir: string) => dir.replace(/^\.\//, "").replace(/\/+$/, "");
+
+const configuredResultsDirs = (config: Record<string, unknown> | null): string[] => {
+  const value = config?.resultsDir;
+
+  return (Array.isArray(value) ? value : value === undefined ? [] : [value]).filter((entry): entry is string => typeof entry === "string");
+};
+
+/**
+ * Adapters write to `allure-results` unless told otherwise, and `allure generate` reads `allure-results` unless the
+ * directory is given (argument or `resultsDir` in allurerc). A custom adapter directory that the report never reads
+ * means an empty report with no error.
+ */
+export const checkResultsDirAgreement = (
+  frameworkConfigs: { framework: string; source: string }[],
+  allureConfig: Record<string, unknown> | null,
+): DoctorFinding[] => {
+  const readsFrom = configuredResultsDirs(allureConfig).map(normalizeDir);
+
+  if (readsFrom.some((dir) => /[*?{]/.test(dir))) {
+    return [];
+  }
+
+  const reads = readsFrom.length > 0 ? readsFrom : ["allure-results"];
+  const findings: DoctorFinding[] = [];
+
+  for (const { framework, source } of frameworkConfigs) {
+    const writes =
+      framework === "wdio"
+        ? /\[\s*["']allure["']\s*,\s*\{[^}]*?outputDir\s*:\s*["']([^"']+)["']/.exec(source)?.[1]
+        : /\bresultsDir["']?\s*[:=]\s*["']([^"'$]+)["']/.exec(source)?.[1];
+
+    if (writes && !reads.includes(normalizeDir(writes))) {
+      findings.push({
+        level: "warning",
+        message: `${framework} writes results to ${writes}, but allure reads ${reads.join(", ")} — the report would be empty`,
+        hint: `Run \`allure generate ${writes}\`, or set resultsDir to "${writes}" in allurerc (\`allure-kit config set resultsDir ${writes}\`)`,
+      });
+    }
+  }
+
+  return findings;
+};

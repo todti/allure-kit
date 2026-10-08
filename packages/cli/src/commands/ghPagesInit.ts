@@ -1,4 +1,3 @@
-import * as console from "node:console";
 import { existsSync, mkdirSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -12,6 +11,7 @@ import {
   logStep,
   logSuccess,
   logWarning,
+  print,
   readAllureConfig,
   resolveReportSubdir,
   writeAllureConfig,
@@ -80,6 +80,7 @@ const buildWorkflowYaml = (params: {
   python?: boolean;
   /** Folder of the HTML report inside allure-report ("" = the root). */
   reportSubdir?: string;
+  prComments?: boolean;
 }): string => {
   const installCommand = params.python ? getPythonInstallCommand(params.packageManager) : getInstallCommand(params.packageManager);
   const generateCommand = params.python ? "npx --yes allure generate" : "npx allure generate";
@@ -101,11 +102,11 @@ const buildWorkflowYaml = (params: {
 
 on:
   push:
-    branches: [${params.defaultBranch}]
+    branches: [${params.defaultBranch}]${params.prComments ? "\n  pull_request:\n    branches: [" + params.defaultBranch + "]" : ""}
   workflow_dispatch: {}
 
 permissions:
-  contents: write
+  contents: write${params.prComments ? "\n  pull-requests: write\n  checks: write" : ""}
 
 concurrency:
   group: allure-gh-pages-\${{ github.ref }}
@@ -130,12 +131,23 @@ ${setupSteps}
       - name: Generate Allure report
         run: ${generateCommand}${allureConfigArgument} --output ./allure-report
       - name: Save Allure history
-        if: \${{ !cancelled() }}
+        if: \${{ !cancelled()${params.prComments ? " && github.event_name != 'pull_request'" : ""} }}
         uses: actions/cache/save@v4
         with:
           path: ${cachePath}
           key: allure-history-\${{ github.run_id }}
-      - name: Deploy to GitHub Pages (gh-pages branch)
+${
+  params.prComments
+    ? `      - name: Comment the test summary on the pull request
+        if: \${{ !cancelled() && github.event_name == 'pull_request' }}
+        continue-on-error: true # a token from a fork has no write access
+        uses: allure-framework/allure-action@v0
+        with:
+          report-directory: ./allure-report
+          github-token: \${{ secrets.GITHUB_TOKEN }}
+`
+    : ""
+}      - name: Deploy to GitHub Pages (gh-pages branch)${params.prComments ? "\n        if: github.event_name != 'pull_request'" : ""}
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: \${{ secrets.GITHUB_TOKEN }}
@@ -160,6 +172,10 @@ export class KitGhPagesInitCommand extends Command {
       ["gh-pages init --branch main", "Use custom default branch"],
       ["gh-pages init --config ./allurerc.mjs", "Use a specific Allure config file"],
     ],
+  });
+
+  prComments = Option.Boolean("--pr-comments", false, {
+    description: "Also run on pull requests and comment the test summary on them (allure-framework/allure-action)",
   });
 
   lang = Option.String("--lang", {
@@ -190,7 +206,7 @@ export class KitGhPagesInitCommand extends Command {
     const workingDir = typeof this.cwd === "string" ? this.cwd : processCwd();
     const targetWorkflowPath = resolve(workingDir, WORKFLOW_FILE_RELATIVE_PATH);
 
-    console.log("\n  Allure GitHub Pages Setup\n");
+    print("\n  Allure GitHub Pages Setup\n");
 
     logStep("Preparing GitHub Pages workflow...");
 
@@ -265,6 +281,7 @@ export class KitGhPagesInitCommand extends Command {
       historyPath,
       reportSubdir,
       python,
+      prComments: this.prComments === true,
     });
 
     const workflowsDir = resolve(workingDir, ".github", "workflows");

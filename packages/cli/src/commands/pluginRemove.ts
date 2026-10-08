@@ -1,4 +1,3 @@
-import * as console from "node:console";
 import { cwd as processCwd } from "node:process";
 
 import {
@@ -11,9 +10,10 @@ import {
   logNewLine,
   logSuccess,
   logWarning,
+  print,
   readAllureConfig,
-  updateConfigPlugins,
   removeMjsPlugin,
+  updateConfigPlugins,
 } from "@todti/allure-kit-core";
 import { detectPackageManager, getRemoveCommand } from "@todti/allure-kit-npm";
 import { Command, Option } from "clipanion";
@@ -90,7 +90,7 @@ export class KitPluginRemoveCommand extends Command {
 
       if (result.exitCode !== 0) {
         logError("Package removal failed:");
-        console.log(result.stderr);
+        print(result.stderr);
         return;
       }
 
@@ -113,7 +113,7 @@ export class KitPluginRemoveCommand extends Command {
 
         if (result.exitCode !== 0) {
           logError("Package removal failed:");
-          console.log(result.stderr);
+          print(result.stderr);
           return;
         }
 

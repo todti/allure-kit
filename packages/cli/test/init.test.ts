@@ -1,4 +1,4 @@
-import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -219,5 +219,47 @@ describe("kit/init", () => {
     const output = logMock.mock.calls.map((call) => call.join(" ")).join("\n");
 
     expect(output).toContain("Playwright: https://allurereport.org/docs/playwright-configuration/");
+  });
+
+  it("--workspaces runs init in every workspace package that has a framework and leaves the others alone", async () => {
+    const pkg = async (dir: string, content: object) => {
+      await mkdir(join(tempDir, dir), { recursive: true });
+      await writeFile(join(tempDir, dir, "package.json"), JSON.stringify(content));
+    };
+
+    await pkg(".", { workspaces: ["packages/*"] });
+    await pkg("packages/web", { devDependencies: { vitest: "^3.0.0" } });
+    await pkg("packages/api", { devDependencies: { mocha: "^10.0.0" } });
+    await pkg("packages/docs", { dependencies: { react: "^18.0.0" } });
+
+    const command = new KitInitCommand();
+    command.cwd = tempDir;
+    command.yes = true;
+    command.workspaces = true;
+
+    await command.execute();
+
+    expect(await fileExists(join(tempDir, "packages", "web", "allurerc.json"))).toBe(true);
+    expect(await fileExists(join(tempDir, "packages", "api", "allurerc.json"))).toBe(true);
+    expect(await fileExists(join(tempDir, "packages", "docs", "allurerc.json"))).toBe(false);
+    expect(await fileExists(join(tempDir, "allurerc.json"))).toBe(false);
+    expect(vi.mocked(executeCommand).mock.calls.map(([, cwd]) => cwd)).toEqual([
+      join(tempDir, "packages", "api"),
+      join(tempDir, "packages", "web"),
+    ]);
+  });
+
+  it("--workspaces says so when there is nothing to do", async () => {
+    await writeFile(join(tempDir, "package.json"), JSON.stringify({ name: "single" }));
+
+    const command = new KitInitCommand();
+    command.cwd = tempDir;
+    command.yes = true;
+    command.workspaces = true;
+
+    await command.execute();
+
+    expect(executeCommand).not.toHaveBeenCalled();
+    expect(logMock.mock.calls.map((call) => call.join(" ")).join("\n")).toContain("No workspace package with a test framework");
   });
 });

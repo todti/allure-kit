@@ -1,7 +1,7 @@
-import * as console from "node:console";
 import { cwd as processCwd } from "node:process";
 
 import {
+  addMjsPlugin,
   executeCommand,
   findExistingConfig,
   findReportPluginById,
@@ -13,10 +13,10 @@ import {
   logSuccess,
   logWarning,
   type PluginOptionDescriptor,
+  print,
   readAllureConfig,
   REPORT_PLUGIN_REGISTRY,
   updateConfigPlugins,
-  addMjsPlugin,
 } from "@todti/allure-kit-core";
 import { detectPackageManager, getInstallCommand } from "@todti/allure-kit-npm";
 import { Command, Option } from "clipanion";
@@ -173,7 +173,7 @@ export class KitPluginAddCommand extends Command {
 
     if (result.exitCode !== 0) {
       logError("Package installation failed:");
-      console.log(result.stderr);
+      print(result.stderr);
       return;
     }
 

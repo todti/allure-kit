@@ -345,6 +345,105 @@ scenario("wdio: init adds the allure reporter to a CommonJS config that still lo
   assert(/spec/.test(loaded.output), "the existing reporter was kept");
 });
 
+// For scripts and AI agents: the same work, reported as data instead of colored text.
+scenario("--json: init returns a structured result", (dir) => {
+  write(dir, "package.json", JSON.stringify({ name: "e2e-json", private: true, type: "module", devDependencies: { vitest: version("^3.0.0") } }));
+  write(dir, "vitest.config.ts", 'import { defineConfig } from "vitest/config";\n\nexport default defineConfig({\n  test: {},\n});\n');
+  run(dir, "npm", ["install", "--no-audit", "--no-fund"]);
+
+  const result = JSON.parse(kit(dir, "init", "--yes", "--json").output);
+
+  assert(result.ok === true, "ok is true");
+  assert(result.messages.some((m) => m.level === "success" && /created allurerc\.json/.test(m.message)), "the result lists what was created");
+  assert(existsSync(join(dir, "allurerc.json")), "the work was really done");
+});
+
+// The commands that edit allurerc, checked by what Allure actually does with the result.
+scenario("config + plugin: history accumulates across runs and the csv plugin writes its file", (dir) => {
+  write(dir, "package.json", JSON.stringify({ name: "e2e-history", private: true, type: "module", devDependencies: { vitest: version("^3.0.0") } }));
+  write(dir, "vitest.config.ts", 'import { defineConfig } from "vitest/config";\n\nexport default defineConfig({\n  test: {},\n});\n');
+  run(dir, "npm", ["install", "--no-audit", "--no-fund"]);
+  kit(dir, "init", "--yes");
+  kit(dir, "demo", "--framework", "vitest");
+  run(dir, "npx", ["vitest", "run"]);
+
+  kit(dir, "plugin", "add", "csv", "--skip-options");
+  kit(dir, "config", "set", "historyPath", "./history.jsonl");
+  assert(kit(dir, "config", "get", "historyPath").output.includes("./history.jsonl"), "config get returns what config set wrote");
+
+  run(dir, "npx", ["allure", "generate"]);
+  run(dir, "npx", ["vitest", "run"]);
+  run(dir, "npx", ["allure", "generate"]);
+
+  const history = readFileSync(join(dir, "history.jsonl"), "utf-8").trim().split("\n");
+
+  assert(history.length === 2, `history.jsonl gained one entry per run (got ${history.length})`);
+  assert(existsSync(join(dir, "allure-report", "csv", "allure-results.csv")), "the csv plugin wrote its file");
+});
+
+scenario("update: an outdated adapter is brought to the latest version", (dir) => {
+  write(dir, "package.json", JSON.stringify({ name: "e2e-update", private: true, devDependencies: { "allure-vitest": "3.0.0" } }));
+  run(dir, "npm", ["install", "--no-audit", "--no-fund", "--legacy-peer-deps"]);
+
+  const installed = () => JSON.parse(readFileSync(join(dir, "node_modules", "allure-vitest", "package.json"), "utf-8")).version;
+  const before = installed();
+
+  assert(before === "3.0.0", `the old adapter is installed (got ${before})`);
+
+  const preview = kit(dir, "update", "--dry-run").output;
+
+  assert(/allure-vitest@3\.0\.0 → \d+\.\d+\.\d+/.test(preview), `update previews installed → latest (got ${preview.trim().slice(0, 200)})`);
+
+  kit(dir, "update", "--yes");
+  assert(installed() !== before, `allure-vitest was updated (still ${installed()})`);
+});
+
+// `config set` must never write a field Allure refuses ("The provided Allure config contains unsupported fields").
+scenario("config set: every supported key yields a config that allure generate accepts", (dir) => {
+  const values = {
+    name: "Named report",
+    output: "./out",
+    resultsDir: "./allure-results",
+    historyPath: "./history.jsonl",
+    appendHistory: "true",
+    historyLimit: "5",
+    historyBaseUrl: "https://example.com/report/",
+    environment: "e2e",
+    port: "8080",
+    "flakyDetection.historyDepth": "3",
+    "flakyDetection.includePassedTests": "true",
+    qualityGate: '{"rules":[{"maxFailures":10}]}',
+    categories: '{"rules":[{"name":"Product defects","matchedStatuses":["failed"]}]}',
+    variables: '{"Build":"123"}',
+    defaultLabels: '{"owner":"qa"}',
+    hideLabels: '["internal"]',
+    allowedEnvironments: '["e2e"]',
+    globalAttachments: '["logs/*.txt"]',
+  };
+
+  write(dir, "package.json", JSON.stringify({ name: "e2e-config-keys", private: true }));
+  write(
+    dir,
+    "allure-results/a-result.json",
+    JSON.stringify({ uuid: "11111111-1111-1111-1111-111111111111", historyId: "a", name: "t", status: "passed", stage: "finished", start: 1, stop: 2, labels: [], steps: [], parameters: [], links: [] }),
+  );
+  run(dir, "npm", ["install", "--no-audit", "--no-fund", "allure"]);
+  kit(dir, "init", "--yes");
+
+  const listed = kit(dir, "config", "list").output;
+
+  for (const [key, value] of Object.entries(values)) {
+    kit(dir, "config", "set", key, value);
+
+    const result = run(dir, "npx", ["allure", "generate"], { allowFailure: true });
+
+    assert(result.status === 0, `allure generate failed after \`config set ${key} ${value}\`:\n${result.output.split("\n").slice(0, 3).join("\n")}`);
+    kit(dir, "config", "unset", key);
+  }
+
+  assert(typeof listed === "string", "config list works");
+});
+
 scenario("migrate: Allure 2 project to Allure 3", (dir) => {
   write(
     dir,

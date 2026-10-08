@@ -24,11 +24,18 @@ export const CONFIG_KEYS = [
   "appendHistory",
   "historyLimit",
   "historyBaseUrl",
-  "knownIssuesPath",
   "environment",
   "port",
   "flakyDetection.historyDepth",
   "flakyDetection.includePassedTests",
+  // Structured values: pass them as JSON, e.g. config set qualityGate '{"rules":[{"maxFailures":10}]}'.
+  "qualityGate",
+  "categories",
+  "variables",
+  "defaultLabels",
+  "hideLabels",
+  "allowedEnvironments",
+  "globalAttachments",
 ];
 
 const parseValue = (raw: string): unknown => {
@@ -69,10 +76,11 @@ export class KitConfigSetCommand extends Command {
 
   static usage = Command.Usage({
     description: "Set a top-level Allure config option",
-    details: `Supported keys: ${CONFIG_KEYS.join(", ")}. Values are parsed as JSON when possible (numbers, booleans).`,
+    details: `Supported keys: ${CONFIG_KEYS.join(", ")}. Values are parsed as JSON when possible (numbers, booleans, objects, arrays).`,
     examples: [
       ["config set resultsDir ./allure-results", "Scope results discovery to a directory"],
       ["config set flakyDetection.historyDepth 10", "Enable history-based flaky detection depth"],
+      ["config set qualityGate '{\"rules\":[{\"maxFailures\":10}]}'", "Set a structured option as JSON"],
     ],
   });
 

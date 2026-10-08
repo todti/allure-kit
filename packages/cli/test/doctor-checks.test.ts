@@ -14,6 +14,8 @@ import {
   checkPluginImports,
   checkReportLayout,
   checkTestOpsPlugin,
+  checkResultsDirAgreement,
+  checkUnsupportedConfigFields,
   checkConfigCombinations,
   checkTestPlanEnv,
   compareVersions,
@@ -259,6 +261,49 @@ describe("kit/doctor-checks", () => {
     it("is quiet when the report stays in the output root", () => {
       expect(checkReportLayout(["awesome"], undefined)).toEqual([]);
       expect(checkReportLayout(["awesome", "classic", "csv"], undefined)).toEqual([]);
+    });
+  });
+
+  describe("checkUnsupportedConfigFields", () => {
+    it("errors on fields Allure rejects, e.g. the knownIssuesPath older allure-kit versions could write", () => {
+      const findings = checkUnsupportedConfigFields({ name: "R", knownIssuesPath: "./known.json", plugins: {}, bogus: 1 });
+
+      expect(findings).toHaveLength(1);
+      expect(findings[0].level).toBe("error");
+      expect(findings[0].message).toContain("knownIssuesPath, bogus");
+    });
+
+    it("accepts every field allure-kit itself writes", () => {
+      expect(
+        checkUnsupportedConfigFields({ name: "R", output: "./o", plugins: {}, historyPath: "h", appendHistory: true, historyLimit: 3, flakyDetection: {}, resultsDir: "r", environment: "e", port: "1" }),
+      ).toEqual([]);
+    });
+  });
+
+  describe("checkResultsDirAgreement", () => {
+    const jest = (dir: string) => ({ framework: "jest", source: `module.exports = { testEnvironmentOptions: { resultsDir: "${dir}" } };` });
+
+    it("warns when the adapter writes somewhere allure doesn't read", () => {
+      const findings = checkResultsDirAgreement([jest("build/allure")], { name: "R" });
+
+      expect(findings).toHaveLength(1);
+      expect(findings[0].message).toContain("jest writes results to build/allure, but allure reads allure-results");
+      expect(findings[0].hint).toContain("allure generate build/allure");
+    });
+
+    it("accepts the default directory, a matching resultsDir (string or list) and a glob", () => {
+      expect(checkResultsDirAgreement([jest("./allure-results")], null)).toEqual([]);
+      expect(checkResultsDirAgreement([jest("build/allure")], { resultsDir: "./build/allure/" })).toEqual([]);
+      expect(checkResultsDirAgreement([jest("build/allure")], { resultsDir: ["x", "build/allure"] })).toEqual([]);
+      expect(checkResultsDirAgreement([jest("build/allure")], { resultsDir: "**/allure-results" })).toEqual([]);
+    });
+
+    it("reads the WebdriverIO reporter's outputDir but ignores unrelated outputDir keys and env-based values", () => {
+      const wdio = { framework: "wdio", source: `reporters: ["spec", ["allure", { outputDir: "reports/allure" }]]` };
+      const playwright = { framework: "playwright", source: `export default defineConfig({ outputDir: "test-results" });` };
+      const dynamic = { framework: "mocha", source: "reporterOptions: { resultsDir: `${process.env.OUT}` }" };
+
+      expect(checkResultsDirAgreement([wdio, playwright, dynamic], null).map((f) => f.message.split(" ")[0])).toEqual(["wdio"]);
     });
   });
 });
