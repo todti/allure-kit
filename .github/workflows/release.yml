@@ -7,11 +7,13 @@ on:
 
 permissions:
   contents: read
-  id-token: write # npm provenance: the signed attestation links the package to this workflow run
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # creates the GitHub release
+      id-token: write # npm provenance: the signed attestation links the package to this workflow run
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -35,3 +37,16 @@ jobs:
         run: npm publish --workspace=allure-kit --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          # The release notes are the matching "## <version> — <date>" section of CHANGELOG.md.
+          awk -v heading="## ${version} " 'index($0, heading) == 1 { found = 1; next } /^## / { if (found) exit } found' CHANGELOG.md > release-notes.md
+          test -s release-notes.md || { echo "No section for ${version} in CHANGELOG.md" >&2; exit 1; }
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release edit "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --notes-file release-notes.md --latest
+          else
+            gh release create "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --notes-file release-notes.md --verify-tag --latest
+          fi

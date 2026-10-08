@@ -12,7 +12,7 @@ Only `allure-kit` (`packages/cli`) is published; `@todti/allure-kit-*` are priva
 2. In one commit: set the new `version` in `packages/cli/package.json` and turn the *Unreleased* heading of `CHANGELOG.md` into `## <version> — <date>` (add a fresh *Unreleased* above it).
 3. Tag and push: `git tag v<version> && git push origin master v<version>`.
 
-The [release workflow](.github/workflows/release.yml) then checks that the tag equals the package version, runs typecheck, build, unit tests and the e2e script, and publishes with `npm publish --provenance`, which attaches a signed attestation linking the package on npm to that workflow run.
+The [release workflow](.github/workflows/release.yml) then checks that the tag equals the package version, runs typecheck, build, unit tests and the e2e script, and publishes with `npm publish --provenance`, which attaches a signed attestation linking the package on npm to that workflow run. Last, it creates the GitHub release for the tag (shown under *Releases* in the repository sidebar), using the `## <version> — <date>` section of `CHANGELOG.md` as the notes; the workflow fails if that section is missing, so date the changelog before tagging. A tag alone is not a release: GitHub lists releases and tags separately.
 
 ## One-time setup
 
