@@ -12,6 +12,7 @@ import {
   checkFrameworkCaveats,
   checkPlaywrightFullName,
   checkPluginImports,
+  checkReportLayout,
   checkTestOpsPlugin,
   checkResultsDirAgreement,
   checkUnsupportedConfigFields,
@@ -246,6 +247,20 @@ describe("kit/doctor-checks", () => {
       expect(checkTestOpsPlugin(config, { ALLURE_JOB_RUN_ID: "12" })).toEqual([]);
       expect(checkTestOpsPlugin(JSON.stringify({ plugins: { awesome: {} } }), {})).toEqual([]);
       expect(checkTestOpsPlugin(null, {})).toEqual([]);
+    });
+  });
+
+  describe("checkReportLayout", () => {
+    it("tells where the report went when csv moves it into a subfolder", () => {
+      const findings = checkReportLayout(["awesome", "csv"], "./allure-report");
+
+      expect(findings).toHaveLength(1);
+      expect(findings[0].message).toContain("./allure-report/awesome/");
+    });
+
+    it("is quiet when the report stays in the output root", () => {
+      expect(checkReportLayout(["awesome"], undefined)).toEqual([]);
+      expect(checkReportLayout(["awesome", "classic", "csv"], undefined)).toEqual([]);
     });
   });
 

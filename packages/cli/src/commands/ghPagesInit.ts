@@ -13,6 +13,7 @@ import {
   logWarning,
   print,
   readAllureConfig,
+  resolveReportSubdir,
   writeAllureConfig,
 } from "@todti/allure-kit-core";
 import { detectPackageManager } from "@todti/allure-kit-npm";
@@ -77,6 +78,8 @@ const buildWorkflowYaml = (params: {
   testCommand: string;
   historyPath: string;
   python?: boolean;
+  /** Folder of the HTML report inside allure-report ("" = the root). */
+  reportSubdir?: string;
   prComments?: boolean;
 }): string => {
   const installCommand = params.python ? getPythonInstallCommand(params.packageManager) : getInstallCommand(params.packageManager);
@@ -148,7 +151,7 @@ ${
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: \${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./allure-report
+          publish_dir: ./allure-report${params.reportSubdir ? `/${params.reportSubdir}` : ""}
           publish_branch: gh-pages
       - name: Fail the job if tests failed
         if: env.TESTS_FAILED == '1'
@@ -268,6 +271,7 @@ export class KitGhPagesInitCommand extends Command {
     const resolvedTestCommand = typeof this.testCommand === "string" ? this.testCommand : selectedTestCommand;
 
     const historyPath = await ensureHistoryPath(workingDir, allureConfigPath);
+    const reportSubdir = allureConfigPath ? "" : resolveReportSubdir(Object.keys((await readAllureConfig(workingDir))?.plugins ?? {}));
 
     const workflowYaml = buildWorkflowYaml({
       defaultBranch: resolvedBranch,
@@ -275,6 +279,7 @@ export class KitGhPagesInitCommand extends Command {
       allureConfigPath,
       testCommand: resolvedTestCommand,
       historyPath,
+      reportSubdir,
       python,
       prComments: this.prComments === true,
     });

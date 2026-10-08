@@ -17,6 +17,20 @@ export interface ReportPluginDescriptor {
   note?: string;
 }
 
+/** Plugins that produce an HTML report. */
+export const HTML_REPORT_PLUGIN_IDS = ["awesome", "classic", "dashboard", "allure2"];
+
+/**
+ * Where the HTML report ends up inside the output directory when these plugins are enabled ("" = the output root).
+ * Checked with allure 3.20.1: a single HTML plugin alone (or with `log`) writes to the root; next to `csv` it moves to
+ * `<output>/<plugin>/` and the root gets no index.html; two or more HTML plugins each get a folder plus a root index.html.
+ */
+export const resolveReportSubdir = (pluginIds: string[]): string => {
+  const html = pluginIds.filter((id) => HTML_REPORT_PLUGIN_IDS.includes(id));
+
+  return html.length === 1 && pluginIds.includes("csv") ? html[0] : "";
+};
+
 export const REPORT_PLUGIN_REGISTRY: ReportPluginDescriptor[] = [
   {
     id: "awesome",
@@ -102,6 +116,7 @@ export const REPORT_PLUGIN_REGISTRY: ReportPluginDescriptor[] = [
     packageName: "@allurereport/plugin-csv",
     description: "CSV export",
     isDefault: false,
+    note: "With csv enabled next to a single HTML report plugin, Allure writes the HTML report to <output>/<plugin>/ (e.g. allure-report/awesome/) and the output root gets no index.html — serve or publish that folder.",
     options: [
       { name: "fileName", description: "Output file name", type: "text", defaultValue: "allure-results.csv" },
       { name: "separator", description: "CSV column separator", type: "text", defaultValue: "," },
