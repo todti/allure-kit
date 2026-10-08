@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="839" height="764" viewBox="0 0 839 764" role="img" aria-label="Terminal: allure-kit">
+<rect width="839" height="764" rx="10" fill="#0d1117"/>
+<rect width="839" height="38" rx="10" fill="#161b22"/><rect y="28" width="839" height="10" fill="#161b22"/>
+<circle cx="22" cy="19" r="6" fill="#ff5f56"/><circle cx="42" cy="19" r="6" fill="#ffbd2e"/><circle cx="62" cy="19" r="6" fill="#27c93f"/>
+<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="14">
+<text x="22" y="70" fill="#8b949e">$</text><text x="38.9" y="70" fill="#e6edf3" font-weight="600">allure-kit</text>
+<text x="22" y="91" xml:space="preserve"></text>
+<text x="22" y="112" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">allure-kit</tspan></text>
+<text x="22" y="133" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" fill-opacity="0.62">Allure 3 toolkit</tspan></text>
+<text x="22" y="154" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" fill-opacity="0.62">Allure: not installed in this project — run allure-kit init</tspan></text>
+<text x="22" y="175" xml:space="preserve"></text>
+<text x="22" y="196" xml:space="preserve"><tspan fill="#e6edf3" font-weight="700">  Usage:</tspan></text>
+<text x="22" y="217" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">allure-kit</tspan><tspan fill="#e6edf3"> </tspan><tspan fill="#d29922">&lt;command&gt;</tspan><tspan fill="#e6edf3"> </tspan><tspan fill="#e6edf3" fill-opacity="0.62">[options]</tspan></text>
+<text x="22" y="238" xml:space="preserve"></text>
+<text x="22" y="259" xml:space="preserve"><tspan fill="#e6edf3" font-weight="700">  Commands:</tspan></text>
+<text x="22" y="280" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">init                       </tspan><tspan fill="#e6edf3"> </tspan><tspan fill="#e6edf3" fill-opacity="0.62">Initialize Allure 3 in your project (auto-detects frameworks)</tspan></text>
+<text x="22" y="301" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">demo                       </tspan><tspan fill="#e6edf3"> </tspan><tspan fill="#e6edf3" fill-opacity="0.62">Create a minimal passing test to see an Allure report straight</tspan></text>
+<text x="22" y="322" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">  </tspan><tspan fill="#e6edf3" fill-opacity="0.62">away</tspan></text>
+<text x="22" y="343" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">gh-pages init              </tspan><tspan fill="#e6edf3"> </tspan><tspan fill="#e6edf3" fill-opacity="0.62">Create GitHub Pages workflow for publishing Allure report</tspan></text>
+<text x="22" y="364" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">gitlab init                </tspan><tspan fill="#e6edf3"> </tspan><tspan fill="#e6edf3" fill-opacity="0.62">Create a GitLab CI job that builds and publishes the Allure</tspan></text>
+<text x="22" y="385" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">  </tspan><tspan fill="#e6edf3" fill-opacity="0.62">report</tspan></text>
+<text x="22" y="406" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">ci init &lt;provider&gt;         </tspan><tspan fill="#e6edf3"> </tspan><tspan fill="#e6edf3" fill-opacity="0.62">Create a CI pipeline for CircleCI, Jenkins, Azure Pipelines or</tspan></text>
+<text x="22" y="427" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">  </tspan><tspan fill="#e6edf3" fill-opacity="0.62">Bitbucket</tspan></text>
+<text x="22" y="448" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">config get|set|list|unset  </tspan><tspan fill="#e6edf3"> </tspan><tspan fill="#e6edf3" fill-opacity="0.62">Read or change top-level allurerc options</tspan></text>
+<text x="22" y="469" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">plugin add &lt;name&gt;          </tspan><tspan fill="#e6edf3"> </tspan><tspan fill="#e6edf3" fill-opacity="0.62">Add a report plugin with interactive options</tspan></text>
+<text x="22" y="490" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">plugin edit &lt;name&gt;         </tspan><tspan fill="#e6edf3"> </tspan><tspan fill="#e6edf3" fill-opacity="0.62">Edit the options of a configured report plugin</tspan></text>
+<text x="22" y="511" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">plugin remove &lt;name&gt;       </tspan><tspan fill="#e6edf3"> </tspan><tspan fill="#e6edf3" fill-opacity="0.62">Remove a report plugin</tspan></text>
+<text x="22" y="532" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">plugin list                </tspan><tspan fill="#e6edf3"> </tspan><tspan fill="#e6edf3" fill-opacity="0.62">List available report plugins</tspan></text>
+<text x="22" y="553" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">migrate                    </tspan><tspan fill="#e6edf3"> </tspan><tspan fill="#e6edf3" fill-opacity="0.62">Migrate a JS/TS project from Allure 2 (allure-commandline) to</tspan></text>
+<text x="22" y="574" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">  </tspan><tspan fill="#e6edf3" fill-opacity="0.62">Allure 3</tspan></text>
+<text x="22" y="595" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">update                     </tspan><tspan fill="#e6edf3"> </tspan><tspan fill="#e6edf3" fill-opacity="0.62">Update all Allure packages to latest</tspan></text>
+<text x="22" y="616" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">doctor                     </tspan><tspan fill="#e6edf3"> </tspan><tspan fill="#e6edf3" fill-opacity="0.62">Diagnose your Allure configuration</tspan></text>
+<text x="22" y="637" xml:space="preserve"></text>
+<text x="22" y="658" xml:space="preserve"><tspan fill="#e6edf3" font-weight="700">  Options:</tspan></text>
+<text x="22" y="679" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">--help, -h                 </tspan><tspan fill="#e6edf3"> </tspan><tspan fill="#e6edf3" fill-opacity="0.62">Show help for a command</tspan></text>
+<text x="22" y="700" xml:space="preserve"><tspan fill="#e6edf3">    </tspan><tspan fill="#56d4dd">--version                  </tspan><tspan fill="#e6edf3"> </tspan><tspan fill="#e6edf3" fill-opacity="0.62">Show version number</tspan></text>
+<text x="22" y="721" xml:space="preserve"></text>
+<text x="22" y="742" xml:space="preserve"><tspan fill="#e6edf3" fill-opacity="0.62">  Run allure-kit &lt;command&gt; --help for detailed usage of each command.</tspan></text>
+</g>
+</svg>

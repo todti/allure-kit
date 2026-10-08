@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="551" height="575" viewBox="0 0 551 575" role="img" aria-label="Terminal: allure-kit init --yes --dry-run">
+<rect width="551" height="575" rx="10" fill="#0d1117"/>
+<rect width="551" height="38" rx="10" fill="#161b22"/><rect y="28" width="551" height="10" fill="#161b22"/>
+<circle cx="22" cy="19" r="6" fill="#ff5f56"/><circle cx="42" cy="19" r="6" fill="#ffbd2e"/><circle cx="62" cy="19" r="6" fill="#27c93f"/>
+<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="14">
+<text x="22" y="70" fill="#8b949e">$</text><text x="38.9" y="70" fill="#e6edf3" font-weight="600">allure-kit init --yes --dry-run</text>
+<text x="22" y="91" xml:space="preserve"></text>
+<text x="22" y="112" xml:space="preserve"><tspan fill="#e6edf3">  Allure 3 Setup (dry run — nothing will be changed)</tspan></text>
+<text x="22" y="133" xml:space="preserve"></text>
+<text x="22" y="154" xml:space="preserve"><tspan fill="#56d4dd">  ℹ vitest ^3.2.0 vitest.config.ts</tspan></text>
+<text x="22" y="175" xml:space="preserve"><tspan fill="#56d4dd">  ℹ would run: npm install --save-dev allure allure-vitest</tspan></text>
+<text x="22" y="196" xml:space="preserve"><tspan fill="#56d4dd">  ℹ would modify /home/dev/my-app/vitest.config.ts:</tspan></text>
+<text x="22" y="217" xml:space="preserve"><tspan fill="#e6edf3">  </tspan></text>
+<text x="22" y="238" xml:space="preserve"><tspan fill="#e6edf3">  export default defineConfig({</tspan></text>
+<text x="22" y="259" xml:space="preserve"><tspan fill="#e6edf3">-   test: {},</tspan></text>
+<text x="22" y="280" xml:space="preserve"><tspan fill="#e6edf3">+   test: {</tspan></text>
+<text x="22" y="301" xml:space="preserve"><tspan fill="#e6edf3">+     setupFiles: ["allure-vitest/setup"],</tspan></text>
+<text x="22" y="322" xml:space="preserve"><tspan fill="#e6edf3">+     reporters: ["default", "allure-vitest/reporter"],},</tspan></text>
+<text x="22" y="343" xml:space="preserve"><tspan fill="#e6edf3">  });</tspan></text>
+<text x="22" y="364" xml:space="preserve"><tspan fill="#56d4dd">  ℹ would create allurerc.json:</tspan></text>
+<text x="22" y="385" xml:space="preserve"><tspan fill="#e6edf3">+ {</tspan></text>
+<text x="22" y="406" xml:space="preserve"><tspan fill="#e6edf3">+   "name": "Allure Report",</tspan></text>
+<text x="22" y="427" xml:space="preserve"><tspan fill="#e6edf3">+   "output": "./allure-report",</tspan></text>
+<text x="22" y="448" xml:space="preserve"><tspan fill="#e6edf3">+   "plugins": {</tspan></text>
+<text x="22" y="469" xml:space="preserve"><tspan fill="#e6edf3">+     "awesome": {</tspan></text>
+<text x="22" y="490" xml:space="preserve"><tspan fill="#e6edf3">+       "options": {}</tspan></text>
+<text x="22" y="511" xml:space="preserve"><tspan fill="#e6edf3">+     }</tspan></text>
+<text x="22" y="532" xml:space="preserve"><tspan fill="#e6edf3">+   }</tspan></text>
+<text x="22" y="553" xml:space="preserve"><tspan fill="#e6edf3">+ }</tspan></text>
+</g>
+</svg>

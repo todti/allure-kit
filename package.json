@@ -14,6 +14,7 @@
   "scripts": {
     "build": "tsc -b tsconfig.json && npm run bundle --workspace=allure-kit",
     "e2e": "npm run build && node scripts/e2e.mjs",
+    "screenshots": "npm run build && node scripts/screenshots.mjs",
     "clean": "npm run clean --workspaces --if-present && rimraf tsconfig.tsbuildinfo",
     "start": "node ./packages/cli/bin/allure-kit.js",
     "test": "vitest run",
