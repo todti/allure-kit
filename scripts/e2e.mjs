@@ -363,6 +363,45 @@ scenario("update: an outdated adapter is brought to the latest version", (dir) =
   assert(installed() !== before, `allure-vitest was updated (still ${installed()})`);
 });
 
+// `config set` must never write a field Allure refuses ("The provided Allure config contains unsupported fields").
+scenario("config set: every supported key yields a config that allure generate accepts", (dir) => {
+  const values = {
+    name: "Named report",
+    output: "./out",
+    resultsDir: "./allure-results",
+    historyPath: "./history.jsonl",
+    appendHistory: "true",
+    historyLimit: "5",
+    historyBaseUrl: "https://example.com/report/",
+    environment: "e2e",
+    port: "8080",
+    "flakyDetection.historyDepth": "3",
+    "flakyDetection.includePassedTests": "true",
+  };
+
+  write(dir, "package.json", JSON.stringify({ name: "e2e-config-keys", private: true }));
+  write(
+    dir,
+    "allure-results/a-result.json",
+    JSON.stringify({ uuid: "11111111-1111-1111-1111-111111111111", historyId: "a", name: "t", status: "passed", stage: "finished", start: 1, stop: 2, labels: [], steps: [], parameters: [], links: [] }),
+  );
+  run(dir, "npm", ["install", "--no-audit", "--no-fund", "allure"]);
+  kit(dir, "init", "--yes");
+
+  const listed = kit(dir, "config", "list").output;
+
+  for (const [key, value] of Object.entries(values)) {
+    kit(dir, "config", "set", key, value);
+
+    const result = run(dir, "npx", ["allure", "generate"], { allowFailure: true });
+
+    assert(result.status === 0, `allure generate failed after \`config set ${key} ${value}\`:\n${result.output.split("\n").slice(0, 3).join("\n")}`);
+    kit(dir, "config", "unset", key);
+  }
+
+  assert(typeof listed === "string", "config list works");
+});
+
 scenario("migrate: Allure 2 project to Allure 3", (dir) => {
   write(
     dir,
