@@ -4,6 +4,10 @@ All notable changes to `allure-kit`. The format follows [Keep a Changelog](https
 
 ## Unreleased
 
+## 1.1.2 — 2026-10-08
+
+No changes to the CLI itself. The introduction and feature list of the README (the front page of the package on npmjs.com) now describe the current tool: Java, `demo`, `migrate`, the CI providers and `--json`.
+
 ## 1.1.1 — 2026-10-08
 
 No changes to the CLI itself: this release refreshes the package page on npmjs.com and automates GitHub releases.
