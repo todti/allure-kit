@@ -116,7 +116,7 @@ allure-kit gitlab init [--yes] [--image <image>] [--config <path>] [--test-comma
 
 ### `config get` / `config set`
 
-Read or write top-level `allurerc` options (`resultsDir`, `historyPath`, `historyBaseUrl`, `knownIssuesPath`, `flakyDetection.historyDepth`, `flakyDetection.includePassedTests`). JSON/YAML configs only.
+Read or write top-level `allurerc` options (`resultsDir`, `historyPath`, `historyBaseUrl`, `flakyDetection.historyDepth`, `flakyDetection.includePassedTests`). JSON/YAML configs only.
 
 ```bash
 allure-kit config set flakyDetection.historyDepth 10

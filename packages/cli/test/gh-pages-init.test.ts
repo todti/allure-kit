@@ -2,8 +2,10 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { parse as parseYaml } from "yaml";
 import { describe, expect, it, vi } from "vitest";
 
+import { checkAllureActionPermissions } from "../src/doctor-checks.js";
 import { KitGhPagesInitCommand } from "../src/commands/ghPagesInit.js";
 import { detectPackageManager } from "../../npm/src/detect-package-manager.js";
 
@@ -122,6 +124,58 @@ describe("kit/gh-pages-init", () => {
       expect(workflow).toContain("run: poetry run behave -f allure_behave.formatter:AllureFormatter -o allure-results");
       expect(workflow).toContain("run: npx --yes allure generate --output ./allure-report");
       expect(workflow).not.toContain("cache:");
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("--pr-comments adds the pull_request trigger, the permissions and the allure-action step, and keeps PR builds off Pages and out of the history", async () => {
+    vi.mocked(detectPackageManager).mockResolvedValue("npm");
+
+    const tempDir = await mkdtemp(join(tmpdir(), "allure-kit-gh-pages-"));
+
+    try {
+      const command = new KitGhPagesInitCommand();
+      command.cwd = tempDir;
+      command.yes = true;
+      command.prComments = true;
+
+      await command.execute();
+
+      const text = await readFile(join(tempDir, ".github", "workflows", "allure-gh-pages.yml"), "utf-8");
+      const workflow = parseYaml(text);
+      const steps = workflow.jobs.report.steps as { name?: string; uses?: string; if?: string; with?: Record<string, string> }[];
+      const action = steps.find((step) => step.uses === "allure-framework/allure-action@v0")!;
+
+      // `doctor` must be happy with what `init` generates.
+      expect(checkAllureActionPermissions([{ file: "allure-gh-pages.yml", content: text }])).toEqual([]);
+      expect(workflow.on.pull_request).toEqual({ branches: ["main"] });
+      expect(workflow.permissions).toEqual({ contents: "write", "pull-requests": "write", checks: "write" });
+      expect(action.with).toEqual({ "report-directory": "./allure-report", "github-token": "${{ secrets.GITHUB_TOKEN }}" });
+      expect(action.if).toContain("pull_request");
+      expect(steps.find((step) => step.uses === "peaceiris/actions-gh-pages@v4")!.if).toBe("github.event_name != 'pull_request'");
+      expect(steps.find((step) => step.name === "Save Allure history")!.if).toContain("!= 'pull_request'");
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("without --pr-comments the workflow is unchanged: push only, no allure-action", async () => {
+    vi.mocked(detectPackageManager).mockResolvedValue("npm");
+
+    const tempDir = await mkdtemp(join(tmpdir(), "allure-kit-gh-pages-"));
+
+    try {
+      const command = new KitGhPagesInitCommand();
+      command.cwd = tempDir;
+      command.yes = true;
+
+      await command.execute();
+
+      const text = await readFile(join(tempDir, ".github", "workflows", "allure-gh-pages.yml"), "utf-8");
+
+      expect(text).not.toContain("pull_request");
+      expect(text).not.toContain("allure-action");
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }
