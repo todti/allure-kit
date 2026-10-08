@@ -50,7 +50,8 @@
   "scripts": {
     "build": "tsc -b tsconfig.json && npm run bundle",
     "bundle": "esbuild src/cli.ts --bundle --platform=node --format=cjs --outfile=dist/cli.cjs && esbuild src/index.ts --bundle --platform=node --format=cjs --outfile=dist/index.cjs && find dist -type f \\( -name '*.js' -o -name '*.js.map' \\) -delete",
-    "prepublishOnly": "npm run build",
+    "readme": "node ../../scripts/sync-cli-readme.mjs",
+    "prepublishOnly": "npm run readme && npm run build",
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "start": "node ./bin/allure-kit.js",
     "typecheck": "tsc -b tsconfig.json"
