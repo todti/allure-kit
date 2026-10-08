@@ -31,6 +31,7 @@ If you ran `allure-kit init` before this release, run `allure-kit doctor`: it no
 - `update --dry-run` and an `installed → latest` preview that flags major upgrades and skips packages that are already current.
 - A nightly end-to-end run (`npm run e2e`, `.github/workflows/e2e.yml`) that installs real frameworks and checks that `allure-results` appear, against pinned and latest versions; and a tag-triggered release workflow with npm provenance (see RELEASING.md).
 
+- `plugin add testops` explains that the plugin only uploads in CI and lists the environment variables it reads (`ALLURE_ENDPOINT`, `ALLURE_TOKEN`, `ALLURE_PROJECT_ID`, `ALLURE_LAUNCH_NAME`); `doctor` notes a configured `testops` plugin that is inactive in the current environment.
 - `gh-pages init --pr-comments`: also runs on pull requests and comments the test summary via `allure-framework/allure-action`; PR runs aren't published to Pages and don't write the history cache.
 
 ### Changed
