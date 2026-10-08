@@ -4,6 +4,9 @@ All notable changes to `allure-kit`. The format follows [Keep a Changelog](https
 
 ## Unreleased
 
+### Changed
+- The README shown on npmjs.com is now generated from the root README (relative links and images made absolute), so it no longer lags behind.
+
 ## 1.1.0 — 2026-10-08
 
 The first release since 0.2.3. The version jumps to 1.1.0: there is a `v1.0.0` git tag from July that was never published to npm and does not correspond to a release, so 1.0.0 is skipped to avoid confusion.
