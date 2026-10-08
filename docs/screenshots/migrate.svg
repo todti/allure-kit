@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="847" height="491" viewBox="0 0 847 491" role="img" aria-label="Terminal: allure-kit migrate --dry-run">
+<rect width="847" height="491" rx="10" fill="#0d1117"/>
+<rect width="847" height="38" rx="10" fill="#161b22"/><rect y="28" width="847" height="10" fill="#161b22"/>
+<circle cx="22" cy="19" r="6" fill="#ff5f56"/><circle cx="42" cy="19" r="6" fill="#ffbd2e"/><circle cx="62" cy="19" r="6" fill="#27c93f"/>
+<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="14">
+<text x="22" y="70" fill="#8b949e">$</text><text x="38.9" y="70" fill="#e6edf3" font-weight="600">allure-kit migrate --dry-run</text>
+<text x="22" y="91" xml:space="preserve"></text>
+<text x="22" y="112" xml:space="preserve"><tspan fill="#e6edf3">  Allure 2 → 3 Migration (dry run — nothing will be changed)</tspan></text>
+<text x="22" y="133" xml:space="preserve"></text>
+<text x="22" y="154" xml:space="preserve"></text>
+<text x="22" y="175" xml:space="preserve"><tspan fill="#e6edf3">  Packages</tspan></text>
+<text x="22" y="196" xml:space="preserve"><tspan fill="#56d4dd">  ℹ would run: npm uninstall allure-commandline</tspan></text>
+<text x="22" y="217" xml:space="preserve"><tspan fill="#56d4dd">  ℹ would run: npm install --save-dev allure</tspan></text>
+<text x="22" y="238" xml:space="preserve"></text>
+<text x="22" y="259" xml:space="preserve"><tspan fill="#e6edf3">  package.json scripts</tspan></text>
+<text x="22" y="280" xml:space="preserve"><tspan fill="#56d4dd">  ℹ would rewrite report: allure serve allure-results  →  allure generate allure-results --open</tspan></text>
+<text x="22" y="301" xml:space="preserve"></text>
+<text x="22" y="322" xml:space="preserve"><tspan fill="#e6edf3">  Config</tspan></text>
+<text x="22" y="343" xml:space="preserve"><tspan fill="#56d4dd">  ℹ would create allurerc.json with the awesome report plugin</tspan></text>
+<text x="22" y="364" xml:space="preserve"></text>
+<text x="22" y="385" xml:space="preserve"></text>
+<text x="22" y="406" xml:space="preserve"><tspan fill="#e6edf3">  Also keep in mind:</tspan></text>
+<text x="22" y="427" xml:space="preserve"><tspan fill="#e6edf3" fill-opacity="0.62">    History: Allure 2 copied the previous report's history folder; Allure 3 uses historyPath in</tspan></text>
+<text x="22" y="448" xml:space="preserve"><tspan fill="#e6edf3" fill-opacity="0.62">      allurerc (JSONL file).</tspan></text>
+<text x="22" y="469" xml:space="preserve"><tspan fill="#e6edf3" fill-opacity="0.62">    Run 'allure-kit doctor' afterwards to check adapters and config.</tspan></text>
+</g>
+</svg>

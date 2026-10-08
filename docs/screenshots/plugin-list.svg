@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="729" height="428" viewBox="0 0 729 428" role="img" aria-label="Terminal: allure-kit plugin list">
+<rect width="729" height="428" rx="10" fill="#0d1117"/>
+<rect width="729" height="38" rx="10" fill="#161b22"/><rect y="28" width="729" height="10" fill="#161b22"/>
+<circle cx="22" cy="19" r="6" fill="#ff5f56"/><circle cx="42" cy="19" r="6" fill="#ffbd2e"/><circle cx="62" cy="19" r="6" fill="#27c93f"/>
+<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="14">
+<text x="22" y="70" fill="#8b949e">$</text><text x="38.9" y="70" fill="#e6edf3" font-weight="600">allure-kit plugin list</text>
+<text x="22" y="91" xml:space="preserve"></text>
+<text x="22" y="112" xml:space="preserve"><tspan fill="#e6edf3">  Available Allure Report Plugins:</tspan></text>
+<text x="22" y="133" xml:space="preserve"></text>
+<text x="22" y="154" xml:space="preserve"><tspan fill="#e6edf3">    awesome     </tspan><tspan fill="#e6edf3" fill-opacity="0.62">            </tspan><tspan fill="#e6edf3">  Interactive HTML report</tspan><tspan fill="#d29922"> (default)</tspan></text>
+<text x="22" y="175" xml:space="preserve"><tspan fill="#e6edf3">    classic     </tspan><tspan fill="#e6edf3" fill-opacity="0.62">            </tspan><tspan fill="#e6edf3">  Classic Allure HTML report</tspan></text>
+<text x="22" y="196" xml:space="preserve"><tspan fill="#e6edf3">    dashboard   </tspan><tspan fill="#e6edf3" fill-opacity="0.62">            </tspan><tspan fill="#e6edf3">  Summary dashboard</tspan></text>
+<text x="22" y="217" xml:space="preserve"><tspan fill="#e6edf3">    csv         </tspan><tspan fill="#e6edf3" fill-opacity="0.62">            </tspan><tspan fill="#e6edf3">  CSV export</tspan></text>
+<text x="22" y="238" xml:space="preserve"><tspan fill="#e6edf3">    log         </tspan><tspan fill="#e6edf3" fill-opacity="0.62">            </tspan><tspan fill="#e6edf3">  Console log output</tspan></text>
+<text x="22" y="259" xml:space="preserve"><tspan fill="#e6edf3">    slack       </tspan><tspan fill="#e6edf3" fill-opacity="0.62">            </tspan><tspan fill="#e6edf3">  Slack notifications</tspan></text>
+<text x="22" y="280" xml:space="preserve"><tspan fill="#e6edf3">    jira        </tspan><tspan fill="#e6edf3" fill-opacity="0.62">            </tspan><tspan fill="#e6edf3">  Jira integration</tspan></text>
+<text x="22" y="301" xml:space="preserve"><tspan fill="#e6edf3">    testops     </tspan><tspan fill="#e6edf3" fill-opacity="0.62">            </tspan><tspan fill="#e6edf3">  Allure TestOps integration</tspan></text>
+<text x="22" y="322" xml:space="preserve"><tspan fill="#e6edf3">    allure2     </tspan><tspan fill="#e6edf3" fill-opacity="0.62">            </tspan><tspan fill="#e6edf3">  Allure 2 compatible report format</tspan></text>
+<text x="22" y="343" xml:space="preserve"><tspan fill="#e6edf3">    testplan    </tspan><tspan fill="#e6edf3" fill-opacity="0.62">            </tspan><tspan fill="#e6edf3">  Generate testplan.json for selective test execution</tspan></text>
+<text x="22" y="364" xml:space="preserve"><tspan fill="#e6edf3">    progress    </tspan><tspan fill="#e6edf3" fill-opacity="0.62">            </tspan><tspan fill="#e6edf3">  Show report generation progress in console</tspan></text>
+<text x="22" y="385" xml:space="preserve"></text>
+<text x="22" y="406" xml:space="preserve"><tspan fill="#e6edf3" fill-opacity="0.62">  Configured: 0 of 11</tspan></text>
+</g>
+</svg>

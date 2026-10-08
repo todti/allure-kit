@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="856" height="1331" viewBox="0 0 856 1331" role="img" aria-label="Terminal: allure-kit --help">
+<rect width="856" height="1331" rx="10" fill="#0d1117"/>
+<rect width="856" height="38" rx="10" fill="#161b22"/><rect y="28" width="856" height="10" fill="#161b22"/>
+<circle cx="22" cy="19" r="6" fill="#ff5f56"/><circle cx="42" cy="19" r="6" fill="#ffbd2e"/><circle cx="62" cy="19" r="6" fill="#27c93f"/>
+<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="14">
+<text x="22" y="70" fill="#8b949e">$</text><text x="38.9" y="70" fill="#e6edf3" font-weight="600">allure-kit --help</text>
+<text x="22" y="91" xml:space="preserve"><tspan fill="#e6edf3" font-weight="700">━━━ allure-kit - 0.2.3 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan></text>
+<text x="22" y="112" xml:space="preserve"></text>
+<text x="22" y="133" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">$ </tspan><tspan fill="#e6edf3">allure-kit &lt;command&gt;</tspan></text>
+<text x="22" y="154" xml:space="preserve"></text>
+<text x="22" y="175" xml:space="preserve"><tspan fill="#e6edf3" font-weight="700">━━━ General commands ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan><tspan fill="#e6edf3" font-weight="700">━</tspan></text>
+<text x="22" y="196" xml:space="preserve"></text>
+<text x="22" y="217" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">allure-kit ci init [--yes,-y] [--lang #0] [--test-command #0] [--cwd #0] &lt;provider&gt;</tspan></text>
+<text x="22" y="238" xml:space="preserve"><tspan fill="#e6edf3">    Scaffold a CI pipeline that builds the Allure report (circleci, jenkins, azure, bitbucket)</tspan></text>
+<text x="22" y="259" xml:space="preserve"></text>
+<text x="22" y="280" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">allure-kit config get [--cwd #0] &lt;key&gt;</tspan></text>
+<text x="22" y="301" xml:space="preserve"><tspan fill="#e6edf3">    Print a top-level Allure config option</tspan></text>
+<text x="22" y="322" xml:space="preserve"></text>
+<text x="22" y="343" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">allure-kit config list [--cwd #0]</tspan></text>
+<text x="22" y="364" xml:space="preserve"><tspan fill="#e6edf3">    Print all supported Allure config options that are currently set</tspan></text>
+<text x="22" y="385" xml:space="preserve"></text>
+<text x="22" y="406" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">allure-kit config set [--cwd #0] &lt;key&gt; &lt;value&gt;</tspan></text>
+<text x="22" y="427" xml:space="preserve"><tspan fill="#e6edf3">    Set a top-level Allure config option</tspan></text>
+<text x="22" y="448" xml:space="preserve"></text>
+<text x="22" y="469" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">allure-kit config unset [--cwd #0] &lt;key&gt;</tspan></text>
+<text x="22" y="490" xml:space="preserve"><tspan fill="#e6edf3">    Remove a top-level Allure config option</tspan></text>
+<text x="22" y="511" xml:space="preserve"></text>
+<text x="22" y="532" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">allure-kit demo [--framework #0] [--lang #0] [--force] [--dry-run] [--cwd #0]</tspan></text>
+<text x="22" y="553" xml:space="preserve"><tspan fill="#e6edf3">    Create a minimal passing test so you can see an Allure report straight away</tspan></text>
+<text x="22" y="574" xml:space="preserve"></text>
+<text x="22" y="595" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">allure-kit doctor [--cwd #0] [--lang #0] [--json] [--strict]</tspan></text>
+<text x="22" y="616" xml:space="preserve"><tspan fill="#e6edf3">    Diagnose your Allure 3 configuration</tspan></text>
+<text x="22" y="637" xml:space="preserve"></text>
+<text x="22" y="658" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">allure-kit gh-pages init [--pr-comments] [--lang #0] [--yes,-y] [--cwd #0] [--branch #0]</tspan></text>
+<text x="22" y="679" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">  [--config #0] [--test-command #0]</tspan></text>
+<text x="22" y="700" xml:space="preserve"><tspan fill="#e6edf3">    Initialize GitHub Pages deployment for Allure reports</tspan></text>
+<text x="22" y="721" xml:space="preserve"></text>
+<text x="22" y="742" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">allure-kit gitlab init [--yes,-y] [--cwd #0] [--image #0] [--config #0] [--lang #0]</tspan></text>
+<text x="22" y="763" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">  [--test-command #0]</tspan></text>
+<text x="22" y="784" xml:space="preserve"><tspan fill="#e6edf3">    Initialize GitLab CI for Allure reports</tspan></text>
+<text x="22" y="805" xml:space="preserve"></text>
+<text x="22" y="826" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">allure-kit init [--format,-f #0] [--yes,-y] [--lang #0] [--framework #0] [--workspaces]</tspan></text>
+<text x="22" y="847" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">  [--dry-run] [--cwd #0]</tspan></text>
+<text x="22" y="868" xml:space="preserve"><tspan fill="#e6edf3">    Initialize Allure 3 in your project</tspan></text>
+<text x="22" y="889" xml:space="preserve"></text>
+<text x="22" y="910" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">allure-kit migrate [--dry-run] [--cwd #0]</tspan></text>
+<text x="22" y="931" xml:space="preserve"><tspan fill="#e6edf3">    Migrate a project from Allure 2 to Allure 3 (JS/TS: allure-commandline; Java: allure-junit5)</tspan></text>
+<text x="22" y="952" xml:space="preserve"></text>
+<text x="22" y="973" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">allure-kit plugin add [--skip-options] [--cwd #0] [plugin]</tspan></text>
+<text x="22" y="994" xml:space="preserve"><tspan fill="#e6edf3">    Add a report plugin to your Allure config</tspan></text>
+<text x="22" y="1015" xml:space="preserve"></text>
+<text x="22" y="1036" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">allure-kit plugin edit [--cwd #0] &lt;plugin&gt;</tspan></text>
+<text x="22" y="1057" xml:space="preserve"><tspan fill="#e6edf3">    Update the settings of an already configured report plugin</tspan></text>
+<text x="22" y="1078" xml:space="preserve"></text>
+<text x="22" y="1099" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">allure-kit plugin list [--cwd #0]</tspan></text>
+<text x="22" y="1120" xml:space="preserve"><tspan fill="#e6edf3">    List available Allure report plugins</tspan></text>
+<text x="22" y="1141" xml:space="preserve"></text>
+<text x="22" y="1162" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">allure-kit plugin remove [--cwd #0] [--uninstall] &lt;plugin&gt;</tspan></text>
+<text x="22" y="1183" xml:space="preserve"><tspan fill="#e6edf3">    Remove a report plugin from your Allure config</tspan></text>
+<text x="22" y="1204" xml:space="preserve"></text>
+<text x="22" y="1225" xml:space="preserve"><tspan fill="#e6edf3">  </tspan><tspan fill="#e6edf3" font-weight="700">allure-kit update [--yes,-y] [--dry-run] [--cwd #0]</tspan></text>
+<text x="22" y="1246" xml:space="preserve"><tspan fill="#e6edf3">    Update all Allure packages to the latest version</tspan></text>
+<text x="22" y="1267" xml:space="preserve"></text>
+<text x="22" y="1288" xml:space="preserve"><tspan fill="#e6edf3">You can also print more details about any of these commands by calling them with </tspan></text>
+<text x="22" y="1309" xml:space="preserve"><tspan fill="#e6edf3">the </tspan><tspan fill="#56d4dd">`-h,--help`</tspan><tspan fill="#e6edf3"> flag right after the command name.</tspan></text>
+</g>
+</svg>

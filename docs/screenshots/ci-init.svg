@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="729" height="281" viewBox="0 0 729 281" role="img" aria-label="Terminal: allure-kit ci init circleci">
+<rect width="729" height="281" rx="10" fill="#0d1117"/>
+<rect width="729" height="38" rx="10" fill="#161b22"/><rect y="28" width="729" height="10" fill="#161b22"/>
+<circle cx="22" cy="19" r="6" fill="#ff5f56"/><circle cx="42" cy="19" r="6" fill="#ffbd2e"/><circle cx="62" cy="19" r="6" fill="#27c93f"/>
+<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="14">
+<text x="22" y="70" fill="#8b949e">$</text><text x="38.9" y="70" fill="#e6edf3" font-weight="600">allure-kit ci init circleci</text>
+<text x="22" y="91" xml:space="preserve"></text>
+<text x="22" y="112" xml:space="preserve"><tspan fill="#e6edf3">  Allure CI Setup (CircleCI)</tspan></text>
+<text x="22" y="133" xml:space="preserve"></text>
+<text x="22" y="154" xml:space="preserve"><tspan fill="#3fb950">  ✓ Created .circleci/config.yml</tspan></text>
+<text x="22" y="175" xml:space="preserve"></text>
+<text x="22" y="196" xml:space="preserve"></text>
+<text x="22" y="217" xml:space="preserve"><tspan fill="#e6edf3">  Next steps:</tspan></text>
+<text x="22" y="238" xml:space="preserve"><tspan fill="#e6edf3" fill-opacity="0.62">    Open the finished job → Artifacts tab → allure-report/index.html</tspan></text>
+<text x="22" y="259" xml:space="preserve"><tspan fill="#e6edf3" fill-opacity="0.62">    Commit and push the file; make sure the test command writes to allure-results</tspan></text>
+</g>
+</svg>

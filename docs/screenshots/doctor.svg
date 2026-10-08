@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="856" height="806" viewBox="0 0 856 806" role="img" aria-label="Terminal: allure-kit doctor">
+<rect width="856" height="806" rx="10" fill="#0d1117"/>
+<rect width="856" height="38" rx="10" fill="#161b22"/><rect y="28" width="856" height="10" fill="#161b22"/>
+<circle cx="22" cy="19" r="6" fill="#ff5f56"/><circle cx="42" cy="19" r="6" fill="#ffbd2e"/><circle cx="62" cy="19" r="6" fill="#27c93f"/>
+<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="14">
+<text x="22" y="70" fill="#8b949e">$</text><text x="38.9" y="70" fill="#e6edf3" font-weight="600">allure-kit doctor</text>
+<text x="22" y="91" xml:space="preserve"></text>
+<text x="22" y="112" xml:space="preserve"><tspan fill="#e6edf3">  Allure Doctor</tspan></text>
+<text x="22" y="133" xml:space="preserve"></text>
+<text x="22" y="154" xml:space="preserve"></text>
+<text x="22" y="175" xml:space="preserve"><tspan fill="#e6edf3">  Checking environment...</tspan></text>
+<text x="22" y="196" xml:space="preserve"><tspan fill="#3fb950">  ✓ Package manager: npm</tspan></text>
+<text x="22" y="217" xml:space="preserve"></text>
+<text x="22" y="238" xml:space="preserve"><tspan fill="#e6edf3">  Checking config file...</tspan></text>
+<text x="22" y="259" xml:space="preserve"><tspan fill="#3fb950">  ✓ Config found: /home/dev/my-app/allurerc.json (json)</tspan></text>
+<text x="22" y="280" xml:space="preserve"><tspan fill="#3fb950">  ✓ 1 plugin(s) configured</tspan></text>
+<text x="22" y="301" xml:space="preserve"><tspan fill="#56d4dd">  ℹ Output directory: ./allure-report</tspan></text>
+<text x="22" y="322" xml:space="preserve"></text>
+<text x="22" y="343" xml:space="preserve"><tspan fill="#e6edf3">  Checking test framework adapters...</tspan></text>
+<text x="22" y="364" xml:space="preserve"><tspan fill="#3fb950">  ✓ Playwright → allure-playwright installed</tspan></text>
+<text x="22" y="385" xml:space="preserve"><tspan fill="#3fb950">  ✓ Playwright reporter is wired into its config</tspan></text>
+<text x="22" y="406" xml:space="preserve"></text>
+<text x="22" y="427" xml:space="preserve"><tspan fill="#e6edf3">  Checking Allure CLI...</tspan></text>
+<text x="22" y="448" xml:space="preserve"><tspan fill="#3fb950">  ✓ allure CLI package is installed</tspan></text>
+<text x="22" y="469" xml:space="preserve"></text>
+<text x="22" y="490" xml:space="preserve"><tspan fill="#e6edf3">  Checking installed plugin packages...</tspan></text>
+<text x="22" y="511" xml:space="preserve"><tspan fill="#3fb950">  ✓ Plugin package @allurereport/plugin-awesome is installed</tspan></text>
+<text x="22" y="532" xml:space="preserve"></text>
+<text x="22" y="553" xml:space="preserve"><tspan fill="#e6edf3">  Checking for unused adapters...</tspan></text>
+<text x="22" y="574" xml:space="preserve"></text>
+<text x="22" y="595" xml:space="preserve"><tspan fill="#e6edf3">  Checking compatibility...</tspan></text>
+<text x="22" y="616" xml:space="preserve"><tspan fill="#ff7b72">  ✗ allure-playwright@3.4.5 is too old for @playwright/test@1.60.1: Playwright 1.60 removed the</tspan></text>
+<text x="22" y="637" xml:space="preserve"><tspan fill="#ff7b72">    API used for test plans, so selective runs ignore the plan (allure-js#1515)</tspan></text>
+<text x="22" y="658" xml:space="preserve"><tspan fill="#e6edf3" fill-opacity="0.62">    Upgrade: allure-playwright@&gt;=3.9.0 (allure-kit update)</tspan></text>
+<text x="22" y="679" xml:space="preserve"><tspan fill="#ff7b72">  ✗ allurerc has fields Allure 3.20 rejects: knownIssuesPath — every allure command fails with</tspan></text>
+<text x="22" y="700" xml:space="preserve"><tspan fill="#ff7b72">    "unsupported fields"</tspan></text>
+<text x="22" y="721" xml:space="preserve"><tspan fill="#e6edf3" fill-opacity="0.62">    Remove them (known issues belong under `resolutions`, or use `allure generate --known-issues</tspan></text>
+<text x="22" y="742" xml:space="preserve"><tspan fill="#e6edf3" fill-opacity="0.62">      &lt;file&gt;`); a newer Allure may accept more fields</tspan></text>
+<text x="22" y="763" xml:space="preserve"></text>
+<text x="22" y="784" xml:space="preserve"><tspan fill="#d29922">  ⚠ Found 2 issue(s). See above for details.</tspan></text>
+</g>
+</svg>
