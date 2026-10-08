@@ -1,0 +1,35 @@
+# allure-kit
+
+> A CLI that sets up and maintains Allure 3 reporting in an existing JavaScript/TypeScript, Python or Java (Gradle/Maven) project: it detects the test framework, installs the right Allure adapter, wires it into the framework's config, writes `allurerc`, diagnoses broken setups and scaffolds CI. Run with `npx allure-kit <command>`; no install needed. It does not build reports itself — `allure generate` (Node.js) does.
+
+Use it when someone asks to add Allure to a project, when tests run but `allure-results` is empty or the report is blank, when moving from Allure 2 to Allure 3, or when publishing Allure reports from CI. Prefer it over hand-editing framework configs: it uses the verified reporter names and syntax per framework, shows a diff first (`--dry-run`), and `doctor` reports setups that fail silently. All configuring commands are non-interactive with `--yes` and can return JSON with `--json`.
+
+## Workflow for an agent
+
+1. Diagnose without changing anything: `npx allure-kit doctor --json` (add `--strict` for a non-zero exit code on problems).
+2. Preview: `npx allure-kit init --yes --dry-run`; then apply: `npx allure-kit init --yes --json`. Java: `--lang java`; monorepo: `--workspaces`.
+3. Verify: run the project's tests and check that `allure-results/` appears (`npx allure-kit demo` writes a minimal passing test if there is none), then `npx allure generate`.
+4. CI: `ci init <circleci|jenkins|azure|bitbucket>`, `gh-pages init`, `gitlab init`.
+
+## Docs
+
+- [README](https://github.com/todti/allure-kit/blob/master/README.md): commands, flags, supported frameworks, what it does differently from a manual setup
+- [Agent skill](https://github.com/todti/allure-kit/blob/master/skills/allure-kit/SKILL.md): step-by-step instructions for coding agents (Claude Code, Codex, Cursor, …)
+- [CHANGELOG](https://github.com/todti/allure-kit/blob/master/CHANGELOG.md): what changed, including configs that older versions wrote incorrectly
+- [RELEASING](https://github.com/todti/allure-kit/blob/master/RELEASING.md): versioning policy
+
+## Commands
+
+- `init`: detect frameworks, install adapters, wire the reporter, create `allurerc` (`--yes`, `--dry-run`, `--json`, `--lang`, `--framework`, `--workspaces`)
+- `doctor`: check adapters, wiring, versions, config fields, results directory, CI permissions (`--json`, `--strict`)
+- `demo`: write a minimal passing test per framework
+- `update`: bump Allure packages, shows installed → latest (`--dry-run`)
+- `migrate`: Allure 2 → 3 (`allure-commandline`, `allure serve`; Java `allure-junit5` → `allure-jupiter`)
+- `plugin add|edit|remove|list`: manage report plugins in `allurerc`
+- `config get|set|list|unset`: edit `allurerc` options
+- `ci init`, `gh-pages init`, `gitlab init`: CI pipelines that build and keep the report even when tests fail
+
+## Optional
+
+- [Allure 3 documentation](https://allurereport.org/docs/): the official docs of the report engine and the per-framework adapters
+- [Allure agent skills](https://github.com/allure-framework/skills): official skills for writing and reviewing tests with Allure
