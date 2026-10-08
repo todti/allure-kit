@@ -12,6 +12,7 @@ import {
   checkFrameworkCaveats,
   checkPlaywrightFullName,
   checkPluginImports,
+  checkTestOpsPlugin,
   checkResultsDirAgreement,
   checkUnsupportedConfigFields,
   checkConfigCombinations,
@@ -225,6 +226,26 @@ describe("kit/doctor-checks", () => {
     it("is quiet once useLegacyFullName is set or the reporter isn't wired", () => {
       expect(checkPlaywrightFullName(`reporter: [["allure-playwright", { useLegacyFullName: true }]]`, testops)).toEqual([]);
       expect(checkPlaywrightFullName(`reporter: "html"`, testops)).toEqual([]);
+    });
+  });
+
+  describe("checkTestOpsPlugin", () => {
+    const config = JSON.stringify({ plugins: { testops: { options: {} } } });
+
+    it("explains that the plugin is silent outside CI", () => {
+      const findings = checkTestOpsPlugin(config, {});
+
+      expect(findings).toHaveLength(1);
+      expect(findings[0].level).toBe("info");
+      expect(findings[0].hint).toContain("ALLURE_TESTOPS_ENABLED");
+    });
+
+    it("is quiet in CI, when forced on, with a job run id, or without the plugin", () => {
+      expect(checkTestOpsPlugin(config, { CI: "true" })).toEqual([]);
+      expect(checkTestOpsPlugin(config, { ALLURE_TESTOPS_ENABLED: "true" })).toEqual([]);
+      expect(checkTestOpsPlugin(config, { ALLURE_JOB_RUN_ID: "12" })).toEqual([]);
+      expect(checkTestOpsPlugin(JSON.stringify({ plugins: { awesome: {} } }), {})).toEqual([]);
+      expect(checkTestOpsPlugin(null, {})).toEqual([]);
     });
   });
 

@@ -1,7 +1,15 @@
-import * as console from "node:console";
 import { cwd as processCwd } from "node:process";
 
-import { executeCommand, logError, logInfo, logNewLine, logStep, logSuccess, logWarning } from "@todti/allure-kit-core";
+import {
+  executeCommand,
+  logError,
+  logInfo,
+  logNewLine,
+  logStep,
+  logSuccess,
+  logWarning,
+  print,
+} from "@todti/allure-kit-core";
 import { detectInstalledAllurePackages, detectPackageManager, getInstallCommand } from "@todti/allure-kit-npm";
 import { Command, Option } from "clipanion";
 import prompts from "prompts";
@@ -51,7 +59,7 @@ export class KitUpdateCommand extends Command {
     };
     const plan = await buildUpdatePlan(workingDir, installedPackages, fetchLatest);
 
-    console.log();
+    print();
 
     for (const { name, version, isDev, current, latest, status, majorBump } of plan) {
       const scope = isDev ? "dev" : "prod";
@@ -106,7 +114,7 @@ export class KitUpdateCommand extends Command {
 
       if (result.exitCode !== 0) {
         logError("Failed to update dev packages:");
-        console.log(result.stderr);
+        print(result.stderr);
         return;
       }
     }
@@ -120,7 +128,7 @@ export class KitUpdateCommand extends Command {
 
       if (result.exitCode !== 0) {
         logError("Failed to update prod packages:");
-        console.log(result.stderr);
+        print(result.stderr);
         return;
       }
     }

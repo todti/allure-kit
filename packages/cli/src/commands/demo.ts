@@ -1,10 +1,18 @@
-import * as console from "node:console";
 import { existsSync, mkdirSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { cwd as processCwd } from "node:process";
 
-import { logError, logHint, logInfo, logNewLine, logStep, logSuccess, logWarning } from "@todti/allure-kit-core";
+import {
+  logError,
+  logHint,
+  logInfo,
+  logNewLine,
+  logStep,
+  logSuccess,
+  logWarning,
+  print,
+} from "@todti/allure-kit-core";
 import { Command, Option, UsageError } from "clipanion";
 
 import { resolveEcosystem } from "../ecosystems.js";
@@ -106,7 +114,7 @@ export class KitDemoCommand extends Command {
     const workingDir = typeof this.cwd === "string" ? this.cwd : processCwd();
     const dryRun = this.dryRun === true;
 
-    console.log("\n  Allure demo\n");
+    print("\n  Allure demo\n");
 
     const ecosystem = await resolveEcosystem(workingDir, typeof this.lang === "string" ? this.lang : undefined);
     let frameworkIds: string[];
