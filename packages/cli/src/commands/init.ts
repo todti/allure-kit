@@ -71,7 +71,7 @@ export class KitInitCommand extends Command {
   });
 
   lang = Option.String("--lang", {
-    description: "Project language: js, ts, or python (js/ts are treated the same in this version)",
+    description: "Project language: js, ts, python or java (js/ts are treated the same; java covers Gradle and Maven)",
   });
 
   framework = Option.String("--framework", {

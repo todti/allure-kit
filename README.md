@@ -43,9 +43,23 @@ Real output, captured from the built CLI (`npm run screenshots` regenerates thes
 
 ![allure-kit ci init circleci](docs/screenshots/ci-init.svg)
 
-**All commands:**
+**Browsing the commands.** Run `allure-kit` with no arguments for the short list:
 
 ![allure-kit](docs/screenshots/help.svg)
+
+`allure-kit --help` lists every command with its flags:
+
+![allure-kit --help](docs/screenshots/help-all.svg)
+
+and `allure-kit <command> --help` shows one command's options and examples:
+
+![allure-kit init --help](docs/screenshots/help-init.svg)
+
+![allure-kit doctor --help](docs/screenshots/help-doctor.svg)
+
+`allure-kit plugin list` shows the report plugins you can add (`plugin add <name>`):
+
+![allure-kit plugin list](docs/screenshots/plugin-list.svg)
 
 ## allure-kit vs doing it by hand
 

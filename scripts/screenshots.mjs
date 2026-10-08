@@ -44,6 +44,10 @@ const fixtures = {
 
 const shots = [
   { file: "help", fixture: "empty", args: [] },
+  { file: "help-all", fixture: "empty", args: ["--help"] },
+  { file: "help-init", fixture: "empty", args: ["init", "--help"] },
+  { file: "help-doctor", fixture: "empty", args: ["doctor", "--help"] },
+  { file: "plugin-list", fixture: "empty", args: ["plugin", "list"] },
   { file: "init-dry-run", fixture: "vitest", args: ["init", "--yes", "--dry-run"] },
   { file: "demo", fixture: "vitest", args: ["demo"] },
   { file: "doctor", fixture: "playwrightWithProblems", args: ["doctor"] },
