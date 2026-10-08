@@ -331,7 +331,7 @@ export class KitDoctorCommand extends Command {
   });
 
   lang = Option.String("--lang", {
-    description: "Project language: js, ts, or python (default: auto-detect)",
+    description: "Project language: js, ts, python or java (default: auto-detect)",
   });
 
   json = Option.Boolean("--json", false, {

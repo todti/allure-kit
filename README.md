@@ -19,6 +19,47 @@ Java (Gradle) projects are supported too: `init --lang java` adds the official `
 
 Detected frameworks: Vitest, Playwright, Jest, Mocha, Cypress, Cucumber.js, Jasmine, CodeceptJS, Newman (Postman), and WebdriverIO (WDIO) for JS/TS; Behave, pytest, Pytest-BDD, and Robot Framework for Python.
 
+## What it looks like
+
+Real output, captured from the built CLI (`npm run screenshots` regenerates these).
+
+**See what `init` would do before it touches anything** — the diff of the framework config, the install command and the `allurerc` it would create:
+
+![allure-kit init --yes --dry-run](docs/screenshots/init-dry-run.svg)
+
+**`doctor`** finds the setups that fail silently — here an adapter too old for Playwright 1.60 and an `allurerc` field Allure rejects:
+
+![allure-kit doctor](docs/screenshots/doctor.svg)
+
+**`demo`** writes a minimal passing test so a fresh setup produces a report straight away:
+
+![allure-kit demo](docs/screenshots/demo.svg)
+
+**`migrate`** moves an Allure 2 project (`allure-commandline`, `allure serve`) to Allure 3:
+
+![allure-kit migrate --dry-run](docs/screenshots/migrate.svg)
+
+**`ci init`** scaffolds a pipeline that still builds and keeps the report when tests fail:
+
+![allure-kit ci init circleci](docs/screenshots/ci-init.svg)
+
+**Browsing the commands.** Run `allure-kit` with no arguments for the short list:
+
+![allure-kit](docs/screenshots/help.svg)
+
+`allure-kit --help` lists every command with its flags:
+
+![allure-kit --help](docs/screenshots/help-all.svg)
+
+and `allure-kit <command> --help` shows one command's options and examples:
+
+![allure-kit init --help](docs/screenshots/help-init.svg)
+
+![allure-kit doctor --help](docs/screenshots/help-doctor.svg)
+
+`allure-kit plugin list` shows the report plugins you can add (`plugin add <name>`):
+
+![allure-kit plugin list](docs/screenshots/plugin-list.svg)
 ## Use with AI coding agents
 
 Agents set Allure up by hand from memory unless something tells them there is a tool for it. Three ways to tell them, from the most to the least reliable:
