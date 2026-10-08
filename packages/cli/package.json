@@ -18,7 +18,10 @@
     "gitlab",
     "java",
     "gradle",
-    "maven"
+    "maven",
+    "ai-agent",
+    "llm",
+    "agent-skill"
   ],
   "license": "Apache-2.0",
   "author": "Todti <hellotodt@gmail.com>",

@@ -19,6 +19,31 @@ Java (Gradle) projects are supported too: `init --lang java` adds the official `
 
 Detected frameworks: Vitest, Playwright, Jest, Mocha, Cypress, Cucumber.js, Jasmine, CodeceptJS, Newman (Postman), and WebdriverIO (WDIO) for JS/TS; Behave, pytest, Pytest-BDD, and Robot Framework for Python.
 
+## Use with AI coding agents
+
+Agents set Allure up by hand from memory unless something tells them there is a tool for it. Three ways to tell them, from the most to the least reliable:
+
+**1. Put a line in the project's agent instructions** (`AGENTS.md`, read by Codex, Cursor, Copilot, Aider and others; `CLAUDE.md` for Claude Code; `.cursor/rules/*.mdc` or `.github/copilot-instructions.md`):
+
+```markdown
+## Allure reporting
+Set up, diagnose and migrate Allure with `npx allure-kit` instead of editing framework configs by hand:
+`npx allure-kit doctor --json` (read-only check), `npx allure-kit init --yes --dry-run` then `init --yes --json`,
+`npx allure-kit demo` for a minimal passing test. After changes, run the tests and confirm `allure-results/` is produced.
+Docs: https://github.com/todti/allure-kit/blob/master/llms.txt
+```
+
+**2. Install the agent skill** [`skills/allure-kit/SKILL.md`](skills/allure-kit/SKILL.md) (the Agent Skills format used by Claude Code, Codex and others): it is loaded when a task mentions Allure setup, an empty report or an Allure 2 → 3 migration.
+
+```bash
+mkdir -p .claude/skills/allure-kit   # or ~/.claude/skills, .agents/skills, ~/.agents/skills
+curl -fsSL https://raw.githubusercontent.com/todti/allure-kit/master/skills/allure-kit/SKILL.md -o .claude/skills/allure-kit/SKILL.md
+```
+
+**3. [`llms.txt`](llms.txt)** — a short machine-readable description of the tool and its commands, following the [llms.txt convention](https://llmstxt.org/), for agents and indexers that fetch it.
+
+Every configuring command takes `--yes` (no prompts) and `--json` (one JSON document: `{ command, ok, messages, error? }`), and `doctor --json --strict` gives a machine-readable verdict, so an agent never has to scrape coloured text.
+
 ## allure-kit vs doing it by hand
 
 Setting Allure up manually is a handful of small steps, each with a way to go wrong *silently* — the tests run, the report is empty. These are the traps found by running the setup on real projects (the repository's end-to-end suite does exactly that, nightly):
