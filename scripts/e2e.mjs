@@ -390,6 +390,13 @@ scenario("config set: every supported key yields a config that allure generate a
     port: "8080",
     "flakyDetection.historyDepth": "3",
     "flakyDetection.includePassedTests": "true",
+    qualityGate: '{"rules":[{"maxFailures":10}]}',
+    categories: '{"rules":[{"name":"Product defects","matchedStatuses":["failed"]}]}',
+    variables: '{"Build":"123"}',
+    defaultLabels: '{"owner":"qa"}',
+    hideLabels: '["internal"]',
+    allowedEnvironments: '["e2e"]',
+    globalAttachments: '["logs/*.txt"]',
   };
 
   write(dir, "package.json", JSON.stringify({ name: "e2e-config-keys", private: true }));

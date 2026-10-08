@@ -101,4 +101,15 @@ describe("kit/config", () => {
     expect(text).not.toContain("historyPath");
     expect(text).toContain('name: "R"');
   });
+
+  it("stores structured values given as JSON and reads them back", async () => {
+    await run(["config", "set", "qualityGate", '{"rules":[{"maxFailures":10}]}', "--cwd", dir]);
+    await run(["config", "set", "hideLabels", '["internal","wip"]', "--cwd", dir]);
+
+    const config = JSON.parse(await readFile(file(), "utf-8"));
+
+    expect(config.qualityGate).toEqual({ rules: [{ maxFailures: 10 }] });
+    expect(config.hideLabels).toEqual(["internal", "wip"]);
+    expect(await run(["config", "get", "qualityGate", "--cwd", dir])).toBe('{"rules":[{"maxFailures":10}]}\n');
+  });
 });
