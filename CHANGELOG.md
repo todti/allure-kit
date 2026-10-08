@@ -1,8 +1,12 @@
 # Changelog
 
-All notable changes to `allure-kit`. The format follows [Keep a Changelog](https://keepachangelog.com/); versions follow semver (pre-1.0: minor versions may contain breaking changes).
+All notable changes to `allure-kit`. The format follows [Keep a Changelog](https://keepachangelog.com/); versions follow semver (up to 0.x minor versions could contain breaking changes; from 1.0 on, breaking changes need a major version).
 
 ## Unreleased
+
+## 1.1.0 — 2026-10-08
+
+The first release since 0.2.3. The version jumps to 1.1.0: there is a `v1.0.0` git tag from July that was never published to npm and does not correspond to a release, so 1.0.0 is skipped to avoid confusion.
 
 ### Fixed — configs written by earlier versions of `init` that never worked
 If you ran `allure-kit init` before this release, run `allure-kit doctor`: it now reports these.
