@@ -323,6 +323,46 @@ scenario("wdio: init adds the allure reporter to a CommonJS config that still lo
   assert(/spec/.test(loaded.output), "the existing reporter was kept");
 });
 
+// The commands that edit allurerc, checked by what Allure actually does with the result.
+scenario("config + plugin: history accumulates across runs and the csv plugin writes its file", (dir) => {
+  write(dir, "package.json", JSON.stringify({ name: "e2e-history", private: true, type: "module", devDependencies: { vitest: version("^3.0.0") } }));
+  write(dir, "vitest.config.ts", 'import { defineConfig } from "vitest/config";\n\nexport default defineConfig({\n  test: {},\n});\n');
+  run(dir, "npm", ["install", "--no-audit", "--no-fund"]);
+  kit(dir, "init", "--yes");
+  kit(dir, "demo", "--framework", "vitest");
+  run(dir, "npx", ["vitest", "run"]);
+
+  kit(dir, "plugin", "add", "csv", "--skip-options");
+  kit(dir, "config", "set", "historyPath", "./history.jsonl");
+  assert(kit(dir, "config", "get", "historyPath").output.includes("./history.jsonl"), "config get returns what config set wrote");
+
+  run(dir, "npx", ["allure", "generate"]);
+  run(dir, "npx", ["vitest", "run"]);
+  run(dir, "npx", ["allure", "generate"]);
+
+  const history = readFileSync(join(dir, "history.jsonl"), "utf-8").trim().split("\n");
+
+  assert(history.length === 2, `history.jsonl gained one entry per run (got ${history.length})`);
+  assert(existsSync(join(dir, "allure-report", "csv", "allure-results.csv")), "the csv plugin wrote its file");
+});
+
+scenario("update: an outdated adapter is brought to the latest version", (dir) => {
+  write(dir, "package.json", JSON.stringify({ name: "e2e-update", private: true, devDependencies: { "allure-vitest": "3.0.0" } }));
+  run(dir, "npm", ["install", "--no-audit", "--no-fund", "--legacy-peer-deps"]);
+
+  const installed = () => JSON.parse(readFileSync(join(dir, "node_modules", "allure-vitest", "package.json"), "utf-8")).version;
+  const before = installed();
+
+  assert(before === "3.0.0", `the old adapter is installed (got ${before})`);
+
+  const preview = kit(dir, "update", "--dry-run").output;
+
+  assert(/allure-vitest@3\.0\.0 → \d+\.\d+\.\d+/.test(preview), `update previews installed → latest (got ${preview.trim().slice(0, 200)})`);
+
+  kit(dir, "update", "--yes");
+  assert(installed() !== before, `allure-vitest was updated (still ${installed()})`);
+});
+
 // `config set` must never write a field Allure refuses ("The provided Allure config contains unsupported fields").
 scenario("config set: every supported key yields a config that allure generate accepts", (dir) => {
   const values = {
