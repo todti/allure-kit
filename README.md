@@ -1,23 +1,23 @@
 # allure-kit
 
-A standalone CLI that sets up and maintains [Allure Report 3](https://allurereport.org/) in a JavaScript/TypeScript or Python project — the equivalent of `npm init` for Allure.
+A standalone CLI that sets up, checks and maintains [Allure Report 3](https://allurereport.org/) in JavaScript/TypeScript, Python and Java (Gradle/Maven) projects — the equivalent of `npm init` for Allure.
 
 ## Why
 
 [Allure 3](https://github.com/allure-framework/allure3) is a fast, plugin-based reporting engine, but wiring it into a project by hand means a handful of separate steps: figure out which test framework(s) the project uses, install the matching adapter package for each one, hand-write an `allurerc` config, pick and configure report plugins, and — if you want reports published automatically — set up CI and GitHub Pages. It's easy to get one of those steps wrong or out of sync as the project evolves.
 
 `allure-kit` automates all of that:
-- detects test frameworks in use and installs the matching Allure adapters,
-- for JS/TS frameworks, wires the reporter into the framework's own config (e.g. adds `reporter: [["allure-playwright"]]` to `playwright.config.ts`) so results actually get produced — not just installs the package,
-- generates and maintains `allurerc` config files (`json`, `yaml`, or `mjs`),
-- manages report plugins (add/remove/list),
-- diagnoses a broken or incomplete setup (`doctor`), including whether the reporter is actually wired in, not just installed,
-- keeps all installed Allure packages up to date (`update`),
-- scaffolds a GitHub Actions workflow that publishes reports to GitHub Pages.
+- detects the test frameworks in use and installs the matching Allure adapters,
+- wires the reporter into the framework's own config (e.g. adds `reporter: [["allure-playwright"]]` to `playwright.config.ts`, the Allure plugin to `build.gradle`, the setup to `pom.xml`) so results actually get produced — not just installs the package; `--dry-run` shows the diff first,
+- generates and edits `allurerc` (`json`, `yaml`, or `mjs`) and manages report plugins (`config`, `plugin`),
+- diagnoses a broken or incomplete setup (`doctor`) — including setups that fail silently, such as an adapter that is installed but writes no results,
+- writes a minimal passing test to see a report straight away (`demo`), keeps Allure packages up to date (`update`) and moves a project from Allure 2 (`migrate`),
+- scaffolds CI that builds and keeps the report even when tests fail: GitHub Pages, GitLab, CircleCI, Jenkins, Azure Pipelines, Bitbucket,
+- reports its work as JSON (`--json`) for scripts and AI coding agents.
 
 Java (Gradle) projects are supported too: `init --lang java` adds the official `io.qameta.allure` Gradle plugin to `build.gradle(.kts)` (it brings the JUnit 5/TestNG adapter, the AspectJ agent and its own Node.js), `doctor` checks the plugin, the Gradle wrapper version (≥ 8.11) and `autoconfigure`. For Maven, `init` follows the [JUnit 5 guide](https://allurereport.org/docs/junit5/) by inserting text into `pom.xml` (nothing else is rewritten): `allure.version`/`aspectj.version` properties, the `allure-bom` import, `allure-jupiter` (test scope), `maven-surefire-plugin` with the AspectJ `-javaagent` argLine, and `src/test/resources/allure.properties` with `allure.results.directory=target/allure-results`. It backs off with a reason when the pom already has a surefire plugin, an `argLine` or a JaCoCo agent (those have to be merged by hand). `doctor` checks the result (BOM/dependency, the agent, `allure.properties`, and the removed `allure-junit5` artifact).
 
-Detected frameworks: Vitest, Playwright, Jest, Mocha, Cypress, Cucumber.js, Jasmine, CodeceptJS, Newman (Postman), and WebdriverIO (WDIO) for JS/TS; Behave, pytest, Pytest-BDD, and Robot Framework for Python.
+Detected frameworks: Vitest, Playwright, Jest, Mocha, Cypress, Cucumber.js, Jasmine, CodeceptJS, Newman (Postman), and WebdriverIO (WDIO) for JS/TS; Behave, pytest, Pytest-BDD, and Robot Framework for Python; JUnit 5 and TestNG for Java.
 
 ## What it looks like
 
