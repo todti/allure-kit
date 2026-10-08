@@ -4,6 +4,10 @@ All notable changes to `allure-kit`. The format follows [Keep a Changelog](https
 
 ## Unreleased
 
+## 1.1.1 — 2026-10-08
+
+No changes to the CLI itself: this release refreshes the package page on npmjs.com and automates GitHub releases.
+
 ### Changed
 - The README shown on npmjs.com is now generated from the root README (relative links and images made absolute), so it no longer lags behind.
 - The release workflow now also creates the GitHub release for the tag, with the matching CHANGELOG section as its notes.
