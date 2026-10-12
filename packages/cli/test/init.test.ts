@@ -71,6 +71,47 @@ describe("kit/init", () => {
     expect(JSON.parse(stillSame).name).toBe("Existing");
   });
 
+  it("should finish wiring the framework when allurerc exists but the reporter isn't wired", async () => {
+    await writeFile(join(tempDir, "package.json"), JSON.stringify({ devDependencies: { vitest: "^3.0.0" } }));
+    await writeFile(join(tempDir, "allurerc.json"), JSON.stringify({ name: "Existing" }));
+
+    const command = new KitInitCommand();
+    command.cwd = tempDir;
+    command.yes = true;
+
+    await command.execute();
+
+    expect(await readFile(join(tempDir, "vitest.config.mjs"), "utf-8")).toContain("allure-vitest/reporter");
+    expect(JSON.parse(await readFile(join(tempDir, "allurerc.json"), "utf-8")).name).toBe("Existing");
+    expect(executeCommand).not.toHaveBeenCalled();
+  });
+
+  it("should pin allure-vitest to the last release that works with Vitest 2", async () => {
+    await writeFile(join(tempDir, "package.json"), JSON.stringify({ devDependencies: { vitest: "^2.1.9" } }));
+
+    const command = new KitInitCommand();
+    command.cwd = tempDir;
+    command.yes = true;
+
+    await command.execute();
+
+    const commands = vi.mocked(executeCommand).mock.calls.map(([line]) => line);
+
+    expect(commands).toEqual(["npm install --save-dev allure", "npm install --save-dev --save-exact allure-vitest@3.4.2"]);
+  });
+
+  it("should install the latest allure-vitest with Vitest 3", async () => {
+    await writeFile(join(tempDir, "package.json"), JSON.stringify({ devDependencies: { vitest: "^3.2.0" } }));
+
+    const command = new KitInitCommand();
+    command.cwd = tempDir;
+    command.yes = true;
+
+    await command.execute();
+
+    expect(vi.mocked(executeCommand).mock.calls.map(([line]) => line)).toEqual(["npm install --save-dev allure allure-vitest"]);
+  });
+
   it("should perform non-interactive setup when --framework is provided", async () => {
     await writeFile(join(tempDir, "package.json"), JSON.stringify({ name: "demo" }));
 

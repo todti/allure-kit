@@ -193,8 +193,6 @@ const checkNpmEcosystem = async (workingDir: string, report: Reporter) => {
           report.add("error", `${framework.displayName} config uses "${bad}", which doesn't exist — no results are written`);
           report.hint(`Older allure-kit versions wrote this name. Replace it with "${use}" in the ${framework.displayName} config.`);
           issues++;
-        } else if (wiring === "no-config-file") {
-          report.add("warning", `${framework.displayName} config file not found — can't verify the reporter is wired`);
         }
       }
     }

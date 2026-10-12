@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { checkFrameworkWiring, patchFrameworkConfig } from "../src/config-patchers.js";
+import { checkFrameworkWiring, OUTDATED_WIRING, patchFrameworkConfig } from "../src/config-patchers.js";
 import { FRAMEWORK_REGISTRY } from "../src/registry.js";
 
 const findFramework = (id: string) => {
@@ -92,6 +92,50 @@ describe("kit/config-patchers", () => {
 
       expect(outcome.status).toBe("already-configured");
       expect(await readFile(configPath, "utf-8")).toBe(original);
+    });
+  });
+
+  describe("vitest without a config file", () => {
+    it("creates vitest.config.mjs wired to Allure", async () => {
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("vitest"));
+
+      expect(outcome).toMatchObject({ status: "patched", created: true, configPath: join(tempDir, "vitest.config.mjs") });
+
+      const text = await readFile(join(tempDir, "vitest.config.mjs"), "utf-8");
+
+      expect(text).toContain('reporters: ["default", "allure-vitest/reporter"]');
+      expect(text).toContain('setupFiles: ["allure-vitest/setup"]');
+      expect(await checkFrameworkWiring(tempDir, findFramework("vitest"))).toBe("wired");
+    });
+
+    it("creates a .ts config in a TypeScript project", async () => {
+      await writeFile(join(tempDir, "tsconfig.json"), "{}");
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("vitest"));
+
+      expect(outcome.configPath).toBe(join(tempDir, "vitest.config.ts"));
+    });
+
+    it("doesn't shadow a vite.config with a new vitest.config", async () => {
+      await writeFile(join(tempDir, "vite.config.ts"), "export default {};\n");
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("vitest"));
+
+      expect(outcome.status).toBe("no-config-file");
+      expect(outcome.reason).toContain("vite.config.ts");
+      await expect(readFile(join(tempDir, "vitest.config.mjs"), "utf-8")).rejects.toThrow();
+      expect(await checkFrameworkWiring(tempDir, findFramework("vitest"))).toBe("not-wired");
+    });
+
+    it("recognises a vite.config that already has the reporter", async () => {
+      await writeFile(join(tempDir, "vite.config.ts"), 'export default { test: { reporters: ["allure-vitest/reporter"] } };\n');
+
+      expect((await patchFrameworkConfig(tempDir, findFramework("vitest"))).status).toBe("already-configured");
+      expect(await checkFrameworkWiring(tempDir, findFramework("vitest"))).toBe("wired");
+    });
+
+    it("reports not-wired when there is no config at all", async () => {
+      expect(await checkFrameworkWiring(tempDir, findFramework("vitest"))).toBe("not-wired");
     });
   });
 
@@ -580,8 +624,37 @@ describe("kit/config-patchers", () => {
       expect(await checkFrameworkWiring(tempDir, findFramework("playwright"))).toBe("wired");
     });
 
-    it("reports no-config-file when the config doesn't exist", async () => {
-      expect(await checkFrameworkWiring(tempDir, findFramework("jest"))).toBe("no-config-file");
+    it.each(["jest", "mocha", "playwright", "vitest", "cypress", "jasmine", "cucumberjs", "codeceptjs", "wdio"])(
+      "reports %s without a config file or any other wiring as not wired (it would write no results)",
+      async (id) => {
+        await mkdir(join(tempDir, "bare"));
+        await writeFile(join(tempDir, "package.json"), JSON.stringify({ scripts: { test: "run-tests" } }));
+
+        expect(await checkFrameworkWiring(tempDir, findFramework(id))).toBe("not-wired");
+        expect(await checkFrameworkWiring(join(tempDir, "bare"), findFramework(id))).toBe("not-wired");
+      },
+    );
+
+    it("accepts wiring that lives in package.json instead of a config file", async () => {
+      await writeFile(join(tempDir, "package.json"), JSON.stringify({ scripts: { test: "mocha --reporter allure-mocha" } }));
+      expect(await checkFrameworkWiring(tempDir, findFramework("mocha"))).toBe("wired");
+
+      await writeFile(join(tempDir, "package.json"), JSON.stringify({ jest: { testEnvironment: "allure-jest/node" } }));
+      expect(await checkFrameworkWiring(tempDir, findFramework("jest"))).toBe("wired");
+    });
+
+    it("doesn't take the adapter in dependencies for wiring", async () => {
+      await writeFile(join(tempDir, "package.json"), JSON.stringify({ devDependencies: { "allure-mocha": "^3.0.0" } }));
+
+      expect(await checkFrameworkWiring(tempDir, findFramework("mocha"))).toBe("not-wired");
+    });
+
+    it("never tells the user to type a name that doesn't exist", () => {
+      for (const framework of FRAMEWORK_REGISTRY) {
+        for (const { bad } of Object.values(OUTDATED_WIRING)) {
+          expect(framework.setupHint).not.toContain(bad);
+        }
+      }
     });
 
     it("reports unsupported for frameworks without a patcher", async () => {

@@ -11,6 +11,8 @@ interface ArrayPatchSpec {
   entryText: string;
 }
 
+const VITE_CONFIG_FILES = ["vite.config.ts", "vite.config.js", "vite.config.mts", "vite.config.mjs", "vite.config.cts", "vite.config.cjs"];
+
 const findExistingFile = async (cwd: string, patterns: string[]): Promise<string | null> => {
   for (const pattern of patterns) {
     const filePath = resolve(cwd, pattern);
@@ -560,7 +562,27 @@ const patchJasmineFramework = async (
   return { status: "patched", configPath: helperPath };
 };
 
-export type FrameworkWiringStatus = "wired" | "not-wired" | "no-config-file" | "unsupported" | "outdated-name";
+export type FrameworkWiringStatus = "wired" | "not-wired" | "unsupported" | "outdated-name";
+
+// A framework without a config file can still be wired from the outside — `mocha --reporter allure-mocha` in a
+// package.json script, or a `jest`/`mocha`/`cucumber` key in package.json itself. Without that evidence nothing
+// registers the reporter and the run writes no results, so the answer is "not wired", not "can't tell".
+const checkWiringOutsideConfigFile = async (cwd: string, framework: FrameworkDescriptor): Promise<FrameworkWiringStatus> => {
+  const alreadyConfigured = ALREADY_CONFIGURED[framework.id];
+
+  try {
+    const manifest = JSON.parse(await readFile(resolve(cwd, "package.json"), "utf-8")) as Record<string, unknown>;
+    const evidence = JSON.stringify({ scripts: manifest.scripts, [framework.packageName]: manifest[framework.packageName] });
+
+    if (alreadyConfigured?.(evidence) || evidence.includes(framework.adapterPackage)) {
+      return "wired";
+    }
+  } catch {
+    // no readable package.json: nothing to find
+  }
+
+  return "not-wired";
+};
 
 // Read-only version of the "already configured?" check patchFrameworkConfig makes before
 // writing anything — for `doctor` to report on without touching any files.
@@ -569,7 +591,7 @@ export const checkFrameworkWiring = async (cwd: string, framework: FrameworkDesc
     const configPath = await findExistingFile(cwd, framework.configFilePatterns);
 
     if (!configPath) {
-      return "no-config-file";
+      return checkWiringOutsideConfigFile(cwd, framework);
     }
 
     const text = await readFile(configPath, "utf-8");
@@ -581,7 +603,7 @@ export const checkFrameworkWiring = async (cwd: string, framework: FrameworkDesc
     const configPath = await findExistingFile(cwd, framework.configFilePatterns);
 
     if (!configPath) {
-      return "no-config-file";
+      return checkWiringOutsideConfigFile(cwd, framework);
     }
 
     let json: Record<string, unknown>;
@@ -614,10 +636,15 @@ export const checkFrameworkWiring = async (cwd: string, framework: FrameworkDesc
     return "unsupported";
   }
 
-  const configPath = await findExistingFile(cwd, framework.configFilePatterns);
+  let configPath = await findExistingFile(cwd, framework.configFilePatterns);
+
+  if (!configPath && framework.id === "vitest") {
+    // Vitest also reads its settings from vite.config.*
+    configPath = await findExistingFile(cwd, VITE_CONFIG_FILES);
+  }
 
   if (!configPath) {
-    return "no-config-file";
+    return checkWiringOutsideConfigFile(cwd, framework);
   }
 
   const text = await readFile(configPath, "utf-8");
@@ -628,6 +655,44 @@ export const checkFrameworkWiring = async (cwd: string, framework: FrameworkDesc
   }
 
   return alreadyConfigured(text) ? "wired" : "not-wired";
+};
+
+// Vitest runs fine without a config file, so a plain Vitest project has nothing to patch — create the file. But a
+// vitest.config.* takes priority over vite.config.* and replaces it, so in a Vite project writing one would silently
+// drop the project's own aliases and plugins: leave that to the user.
+const createVitestConfig = async (cwd: string, write: FileWriter): Promise<ConfigPatchOutcome> => {
+  const viteConfig = await findExistingFile(cwd, VITE_CONFIG_FILES);
+
+  if (viteConfig) {
+    if ((await readFile(viteConfig, "utf-8")).includes("allure-vitest/reporter")) {
+      return { status: "already-configured", configPath: viteConfig };
+    }
+
+    return {
+      status: "no-config-file",
+      reason: `Vitest reads its settings from ${relative(cwd, viteConfig)}, and a new vitest.config file would replace that file — add the reporter to its \`test\` block yourself`,
+    };
+  }
+
+  const extension = (await findExistingFile(cwd, ["tsconfig.json"])) ? "ts" : "mjs";
+  const configPath = resolve(cwd, `vitest.config.${extension}`);
+
+  await write(
+    configPath,
+    [
+      'import { defineConfig } from "vitest/config";',
+      "",
+      "export default defineConfig({",
+      "  test: {",
+      '    setupFiles: ["allure-vitest/setup"],',
+      '    reporters: ["default", "allure-vitest/reporter"],',
+      "  },",
+      "});",
+      "",
+    ].join("\n"),
+  );
+
+  return { status: "patched", configPath, created: true };
 };
 
 export const patchFrameworkConfig = async (
@@ -652,7 +717,7 @@ export const patchFrameworkConfig = async (
   const configPath = await findExistingFile(cwd, framework.configFilePatterns);
 
   if (!configPath) {
-    return { status: "no-config-file" };
+    return framework.id === "vitest" ? createVitestConfig(cwd, write) : { status: "no-config-file" };
   }
 
   const text = await readFile(configPath, "utf-8");

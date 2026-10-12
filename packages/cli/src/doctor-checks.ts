@@ -67,6 +67,8 @@ interface FrameworkTooOldRule {
   frameworkBelow: string;
   /** ...when combined with the adapter at this version or newer. */
   adapterFrom: string;
+  /** The range of the newest adapter releases that still work with such a framework (`init` installs this one). */
+  adapterPin: string;
   problem: string;
 }
 
@@ -76,8 +78,9 @@ export const FRAMEWORK_TOO_OLD_RULES: FrameworkTooOldRule[] = [
     frameworkPackage: "vitest",
     adapterPackage: "allure-vitest",
     frameworkBelow: "3.0.0",
-    adapterFrom: "3.13.0",
-    problem: "the reporter writes no allure-results at all, and nothing reports an error (reproduced with vitest 2.1.9)",
+    adapterFrom: "3.4.3",
+    adapterPin: "3.4.2",
+    problem: "the reporter writes no allure-results at all, and nothing reports an error (reproduced with vitest 1.6.1, 2.0.5 and 2.1.9: allure-vitest 3.4.2 and older write results, 3.4.3 and newer don't)",
   },
 ];
 
@@ -123,7 +126,7 @@ export const checkAdapterCompat = async (cwd: string): Promise<DoctorFinding[]> 
       findings.push({
         level: "error",
         message: `${rule.frameworkPackage}@${frameworkVersion} with ${rule.adapterPackage}@${adapterVersion}: ${rule.problem}`,
-        hint: `Upgrade ${rule.frameworkPackage} to ${rule.frameworkBelow} or newer, or pin ${rule.adapterPackage} to an older release`,
+        hint: `Upgrade ${rule.frameworkPackage} to ${rule.frameworkBelow} or newer, or pin ${rule.adapterPackage} to ${rule.adapterPin}`,
       });
     }
   }

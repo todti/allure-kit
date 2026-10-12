@@ -3,7 +3,7 @@
 //   npm run build && node scripts/e2e.mjs
 // Used by .github/workflows/e2e.yml (nightly) so a broken release of allure, an adapter or a framework shows up here first.
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -80,6 +80,24 @@ scenario("vitest: init, doctor, run tests, generate report", (dir) => {
   run(dir, "npx", ["allure", "generate", "--output", "allure-report"]);
   assert(existsSync(join(dir, "allure-report", "index.html")), "the report was generated");
 });
+
+// A Vitest project often has no config file at all, and Vitest 2 breaks the newest allure-vitest: init must cope with both.
+for (const vitest of ["^2.1.0", version("^3.0.0")]) {
+  scenario(`vitest ${vitest}: no config file, init creates one and tests produce allure-results`, (dir) => {
+    write(dir, "package.json", JSON.stringify({ name: "e2e-vitest-bare", private: true, type: "module", devDependencies: { vitest } }));
+    run(dir, "npm", ["install", "--no-audit", "--no-fund"]);
+
+    kit(dir, "init", "--yes");
+    kit(dir, "demo", "--framework", "vitest");
+    assert(existsSync(join(dir, "vitest.config.mjs")), "vitest.config.mjs was created");
+
+    const doctor = JSON.parse(kit(dir, "doctor", "--json").output);
+    assert(doctor.ok === true, `doctor reports no issues (got ${JSON.stringify(doctor.checks.filter((c) => c.level === "error"))})`);
+
+    run(dir, "npx", ["vitest", "run"]);
+    assert(existsSync(join(dir, "allure-results")) && readdirSync(join(dir, "allure-results")).length > 0, "allure-results were written");
+  });
+}
 
 // Every framework follows the same path: install it, `init`, `doctor` is clean, run a trivial passing test, results appear.
 const frameworkScenario = ({ id, devDependencies, files, command, demo = true }) =>

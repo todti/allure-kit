@@ -44,6 +44,7 @@ describe("kit/doctor", () => {
       join(tempDir, "allurerc.json"),
       JSON.stringify({ name: "Allure Report", plugins: { awesome: { options: {} } } }),
     );
+    await writeFile(join(tempDir, "vitest.config.ts"), 'export default { test: { reporters: ["default", "allure-vitest/reporter"] } };\n');
     await mkdir(join(tempDir, "node_modules", "allure-vitest"), { recursive: true });
     await mkdir(join(tempDir, "node_modules", "allure"), { recursive: true });
     await mkdir(join(tempDir, "node_modules", "@allurereport", "plugin-awesome"), { recursive: true });
@@ -51,6 +52,32 @@ describe("kit/doctor", () => {
     await run();
 
     expect(output()).toContain("No issues found. Your Allure setup looks good!");
+  });
+
+  it("should flag Vitest without any config file as not wired (it would write no results)", async () => {
+    await writeFile(join(tempDir, "package.json"), JSON.stringify({ devDependencies: { vitest: "^3.0.0" } }));
+    await writeFile(join(tempDir, "allurerc.json"), JSON.stringify({ name: "Allure Report", plugins: {} }));
+    await mkdir(join(tempDir, "node_modules", "allure-vitest"), { recursive: true });
+    await mkdir(join(tempDir, "node_modules", "allure"), { recursive: true });
+
+    await run();
+
+    expect(output()).toContain("Vitest adapter is installed but the reporter isn't wired into its config");
+  });
+
+  it.each([
+    ["jest", "Jest", "allure-jest"],
+    ["mocha", "Mocha", "allure-mocha"],
+    ["@playwright/test", "Playwright", "allure-playwright"],
+  ])("should flag %s without a config file as not wired (it would write no results)", async (dependency, displayName, adapter) => {
+    await writeFile(join(tempDir, "package.json"), JSON.stringify({ devDependencies: { [dependency]: "^1.0.0" } }));
+    await writeFile(join(tempDir, "allurerc.json"), JSON.stringify({ name: "Allure Report", plugins: {} }));
+    await mkdir(join(tempDir, "node_modules", adapter), { recursive: true });
+    await mkdir(join(tempDir, "node_modules", "allure"), { recursive: true });
+
+    await run();
+
+    expect(output()).toContain(`${displayName} adapter is installed but the reporter isn't wired into its config`);
   });
 
   it("should flag a detected framework whose adapter is not installed", async () => {
