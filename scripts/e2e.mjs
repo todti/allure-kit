@@ -99,6 +99,33 @@ for (const vitest of ["^2.1.0", version("^3.0.0")]) {
   });
 }
 
+// Jest and Mocha run without a config file too, and then nothing registers the reporter unless init writes one.
+scenario("jest: no config file, init creates one and tests produce allure-results", (dir) => {
+  write(dir, "package.json", JSON.stringify({ name: "e2e-jest-bare", private: true, devDependencies: { jest: version("^29.0.0") } }));
+  write(dir, "sum.test.js", 'test("adds", () => { expect(1 + 2).toBe(3); });\n');
+  run(dir, "npm", ["install", "--no-audit", "--no-fund"]);
+
+  kit(dir, "init", "--yes");
+  assert(existsSync(join(dir, "jest.config.js")), "jest.config.js was created");
+  assert(JSON.parse(kit(dir, "doctor", "--json").output).ok === true, "doctor reports no issues");
+
+  run(dir, "npx", ["jest"]);
+  assert(existsSync(join(dir, "allure-results")) && readdirSync(join(dir, "allure-results")).length > 0, "allure-results were written");
+});
+
+scenario("mocha: no config file, init creates one and tests produce allure-results", (dir) => {
+  write(dir, "package.json", JSON.stringify({ name: "e2e-mocha-bare", private: true, devDependencies: { mocha: version("^10.0.0") } }));
+  write(dir, "test/sum.spec.js", 'const assert = require("node:assert");\n\nit("adds", () => { assert.strictEqual(1 + 2, 3); });\n');
+  run(dir, "npm", ["install", "--no-audit", "--no-fund"]);
+
+  kit(dir, "init", "--yes");
+  assert(existsSync(join(dir, ".mocharc.json")), ".mocharc.json was created");
+  assert(JSON.parse(kit(dir, "doctor", "--json").output).ok === true, "doctor reports no issues");
+
+  run(dir, "npx", ["mocha"]);
+  assert(existsSync(join(dir, "allure-results")) && readdirSync(join(dir, "allure-results")).length > 0, "allure-results were written");
+});
+
 // Every framework follows the same path: install it, `init`, `doctor` is clean, run a trivial passing test, results appear.
 const frameworkScenario = ({ id, devDependencies, files, command, demo = true }) =>
   scenario(`${id}: init wires the reporter and tests produce allure-results`, (dir) => {

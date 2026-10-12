@@ -95,6 +95,62 @@ describe("kit/config-patchers", () => {
     });
   });
 
+  describe("jest without a config file", () => {
+    it("creates a CommonJS jest.config.js wired to Allure", async () => {
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("jest"));
+
+      expect(outcome).toMatchObject({ status: "patched", created: true, configPath: join(tempDir, "jest.config.js") });
+      expect(await readFile(join(tempDir, "jest.config.js"), "utf-8")).toBe(
+        'module.exports = {\n  testEnvironment: "allure-jest/node",\n};\n',
+      );
+      expect(await checkFrameworkWiring(tempDir, findFramework("jest"))).toBe("wired");
+    });
+
+    it("writes an ES module config in a type: module package", async () => {
+      await writeFile(join(tempDir, "package.json"), JSON.stringify({ type: "module" }));
+
+      await patchFrameworkConfig(tempDir, findFramework("jest"));
+
+      expect(await readFile(join(tempDir, "jest.config.js"), "utf-8")).toContain("export default {");
+    });
+
+    it("leaves a `jest` key in package.json alone and says where to add the setting", async () => {
+      await writeFile(join(tempDir, "package.json"), JSON.stringify({ jest: { verbose: true } }));
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("jest"));
+
+      expect(outcome.status).toBe("no-config-file");
+      expect(outcome.reason).toContain('"jest" key in package.json');
+      await expect(readFile(join(tempDir, "jest.config.js"), "utf-8")).rejects.toThrow();
+    });
+
+    it("recognises Allure already set in the package.json key", async () => {
+      await writeFile(join(tempDir, "package.json"), JSON.stringify({ jest: { testEnvironment: "allure-jest/node" } }));
+
+      expect((await patchFrameworkConfig(tempDir, findFramework("jest"))).status).toBe("already-configured");
+    });
+  });
+
+  describe("mocha without a config file", () => {
+    it("creates .mocharc.json with the reporter", async () => {
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("mocha"));
+
+      expect(outcome).toMatchObject({ status: "patched", created: true, configPath: join(tempDir, ".mocharc.json") });
+      expect(JSON.parse(await readFile(join(tempDir, ".mocharc.json"), "utf-8"))).toEqual({ reporter: "allure-mocha" });
+      expect(await checkFrameworkWiring(tempDir, findFramework("mocha"))).toBe("wired");
+    });
+
+    it("leaves a `mocha` key in package.json alone", async () => {
+      await writeFile(join(tempDir, "package.json"), JSON.stringify({ mocha: { timeout: 5000 } }));
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("mocha"));
+
+      expect(outcome.status).toBe("no-config-file");
+      expect(outcome.reason).toContain('"mocha" key in package.json');
+      await expect(readFile(join(tempDir, ".mocharc.json"), "utf-8")).rejects.toThrow();
+    });
+  });
+
   describe("vitest without a config file", () => {
     it("creates vitest.config.mjs wired to Allure", async () => {
       const outcome = await patchFrameworkConfig(tempDir, findFramework("vitest"));
