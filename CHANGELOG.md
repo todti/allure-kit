@@ -13,6 +13,7 @@ Found by running the generated GitHub Actions workflow on a real repository.
 - `init` named a config file (`vitest.config.ts`) in its detection line even when the project had none.
 - **`doctor` said "No issues found" when a framework had no config file** (Jest, Mocha, Playwright and others can run without one) even though nothing registered the reporter and the run wrote no results. A framework with no config file and no wiring elsewhere (a `--reporter allure-mocha` script, a `jest` key in `package.json`) is now reported as not wired.
 - The setup hints printed by `init` for Jest and Mocha named `allure-jest/environment` and `allure-mocha/reporter`, which don't exist (the patchers were fixed in 1.1.0, the hints were not). They now say `allure-jest/node` and `allure-mocha`.
+- **Jest and Mocha without a config file** (both run fine without one): `init` printed a hint and wired nothing, so no results were written. It now creates `jest.config.js` (an ES module in a `"type": "module"` package) with `testEnvironment: "allure-jest/node"`, and `.mocharc.json` with `reporter: "allure-mocha"`. When the settings live in a `jest` / `mocha` key of `package.json`, `init` leaves it alone (a second config next to it would make Jest refuse to run) and says where to add the setting.
 
 ## 1.1.2 — 2026-10-08
 

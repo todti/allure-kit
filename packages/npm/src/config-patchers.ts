@@ -660,7 +660,7 @@ export const checkFrameworkWiring = async (cwd: string, framework: FrameworkDesc
 // Vitest runs fine without a config file, so a plain Vitest project has nothing to patch — create the file. But a
 // vitest.config.* takes priority over vite.config.* and replaces it, so in a Vite project writing one would silently
 // drop the project's own aliases and plugins: leave that to the user.
-const createVitestConfig = async (cwd: string, write: FileWriter): Promise<ConfigPatchOutcome> => {
+const createVitestConfig = async (cwd: string, _framework: FrameworkDescriptor, write: FileWriter): Promise<ConfigPatchOutcome> => {
   const viteConfig = await findExistingFile(cwd, VITE_CONFIG_FILES);
 
   if (viteConfig) {
@@ -695,6 +695,75 @@ const createVitestConfig = async (cwd: string, write: FileWriter): Promise<Confi
   return { status: "patched", configPath, created: true };
 };
 
+const readManifest = async (cwd: string): Promise<Record<string, unknown>> => {
+  try {
+    return JSON.parse(await readFile(resolve(cwd, "package.json"), "utf-8")) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+};
+
+// Jest and Mocha also read their settings from a `jest` / `mocha` key in package.json. Editing package.json would
+// rewrite the whole file, so when the key exists the user is told where to add the setting instead of a second
+// config file being created next to it (Jest even refuses to run with two).
+const configInManifest = async (cwd: string, framework: FrameworkDescriptor): Promise<ConfigPatchOutcome | null> => {
+  const manifestConfig = (await readManifest(cwd))[framework.packageName];
+
+  if (manifestConfig === undefined) {
+    return null;
+  }
+
+  const configPath = resolve(cwd, "package.json");
+
+  return JSON.stringify(manifestConfig).includes(framework.adapterPackage)
+    ? { status: "already-configured", configPath }
+    : {
+        status: "no-config-file",
+        reason: `${framework.displayName} reads its settings from the "${framework.packageName}" key in package.json — add the Allure setting there yourself`,
+      };
+};
+
+const createJestConfig = async (cwd: string, framework: FrameworkDescriptor, write: FileWriter): Promise<ConfigPatchOutcome> => {
+  const inManifest = await configInManifest(cwd, framework);
+
+  if (inManifest) {
+    return inManifest;
+  }
+
+  const isEsm = (await readManifest(cwd)).type === "module";
+  const configPath = resolve(cwd, "jest.config.js");
+
+  await write(
+    configPath,
+    isEsm
+      ? 'export default {\n  testEnvironment: "allure-jest/node",\n};\n'
+      : 'module.exports = {\n  testEnvironment: "allure-jest/node",\n};\n',
+  );
+
+  return { status: "patched", configPath, created: true };
+};
+
+const createMochaConfig = async (cwd: string, framework: FrameworkDescriptor, write: FileWriter): Promise<ConfigPatchOutcome> => {
+  const inManifest = await configInManifest(cwd, framework);
+
+  if (inManifest) {
+    return inManifest;
+  }
+
+  const configPath = resolve(cwd, ".mocharc.json");
+
+  await write(configPath, `${JSON.stringify({ reporter: "allure-mocha" }, null, 2)}\n`);
+
+  return { status: "patched", configPath, created: true };
+};
+
+// Frameworks that run without a config file, where "no config" means "not wired" and one can be written from scratch.
+const CONFIG_CREATORS: Record<string, (cwd: string, framework: FrameworkDescriptor, write: FileWriter) => Promise<ConfigPatchOutcome>> = {
+  vitest: createVitestConfig,
+  jest: createJestConfig,
+  mocha: createMochaConfig,
+};
+
 export const patchFrameworkConfig = async (
   cwd: string,
   framework: FrameworkDescriptor,
@@ -717,7 +786,9 @@ export const patchFrameworkConfig = async (
   const configPath = await findExistingFile(cwd, framework.configFilePatterns);
 
   if (!configPath) {
-    return framework.id === "vitest" ? createVitestConfig(cwd, write) : { status: "no-config-file" };
+    const create = CONFIG_CREATORS[framework.id];
+
+    return create ? create(cwd, framework, write) : { status: "no-config-file" };
   }
 
   const text = await readFile(configPath, "utf-8");
