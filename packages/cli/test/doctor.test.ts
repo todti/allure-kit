@@ -65,6 +65,21 @@ describe("kit/doctor", () => {
     expect(output()).toContain("Vitest adapter is installed but the reporter isn't wired into its config");
   });
 
+  it.each([
+    ["jest", "Jest", "allure-jest"],
+    ["mocha", "Mocha", "allure-mocha"],
+    ["@playwright/test", "Playwright", "allure-playwright"],
+  ])("should flag %s without a config file as not wired (it would write no results)", async (dependency, displayName, adapter) => {
+    await writeFile(join(tempDir, "package.json"), JSON.stringify({ devDependencies: { [dependency]: "^1.0.0" } }));
+    await writeFile(join(tempDir, "allurerc.json"), JSON.stringify({ name: "Allure Report", plugins: {} }));
+    await mkdir(join(tempDir, "node_modules", adapter), { recursive: true });
+    await mkdir(join(tempDir, "node_modules", "allure"), { recursive: true });
+
+    await run();
+
+    expect(output()).toContain(`${displayName} adapter is installed but the reporter isn't wired into its config`);
+  });
+
   it("should flag a detected framework whose adapter is not installed", async () => {
     await writeFile(join(tempDir, "package.json"), JSON.stringify({ devDependencies: { vitest: "^2.0.0" } }));
     await writeFile(join(tempDir, "allurerc.json"), JSON.stringify({ name: "Allure Report", plugins: {} }));

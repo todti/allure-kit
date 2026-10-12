@@ -11,6 +11,8 @@ Found by running the generated GitHub Actions workflow on a real repository.
 - **`init` after a first run that wired nothing** said "Allure is already configured" and stopped. When `allurerc` exists but a detected framework isn't wired, `init` now wires it (it never overwrites `allurerc`).
 - **Vitest 1/2 with a current `allure-vitest`:** `allure-vitest` 3.4.3 and newer write no results on Vitest below 3 and report no error. `init` now installs `allure-vitest@3.4.2` (exact) there, `update` leaves it alone, and the `doctor` rule that flagged this starts at 3.4.3 instead of 3.13.0 (3.4.3 – 3.12 were silently broken too).
 - `init` named a config file (`vitest.config.ts`) in its detection line even when the project had none.
+- **`doctor` said "No issues found" when a framework had no config file** (Jest, Mocha, Playwright and others can run without one) even though nothing registered the reporter and the run wrote no results. A framework with no config file and no wiring elsewhere (a `--reporter allure-mocha` script, a `jest` key in `package.json`) is now reported as not wired.
+- The setup hints printed by `init` for Jest and Mocha named `allure-jest/environment` and `allure-mocha/reporter`, which don't exist (the patchers were fixed in 1.1.0, the hints were not). They now say `allure-jest/node` and `allure-mocha`.
 
 ## 1.1.2 — 2026-10-08
 

@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { checkFrameworkWiring, patchFrameworkConfig } from "../src/config-patchers.js";
+import { checkFrameworkWiring, OUTDATED_WIRING, patchFrameworkConfig } from "../src/config-patchers.js";
 import { FRAMEWORK_REGISTRY } from "../src/registry.js";
 
 const findFramework = (id: string) => {
@@ -624,8 +624,37 @@ describe("kit/config-patchers", () => {
       expect(await checkFrameworkWiring(tempDir, findFramework("playwright"))).toBe("wired");
     });
 
-    it("reports no-config-file when the config doesn't exist", async () => {
-      expect(await checkFrameworkWiring(tempDir, findFramework("jest"))).toBe("no-config-file");
+    it.each(["jest", "mocha", "playwright", "vitest", "cypress", "jasmine", "cucumberjs", "codeceptjs", "wdio"])(
+      "reports %s without a config file or any other wiring as not wired (it would write no results)",
+      async (id) => {
+        await mkdir(join(tempDir, "bare"));
+        await writeFile(join(tempDir, "package.json"), JSON.stringify({ scripts: { test: "run-tests" } }));
+
+        expect(await checkFrameworkWiring(tempDir, findFramework(id))).toBe("not-wired");
+        expect(await checkFrameworkWiring(join(tempDir, "bare"), findFramework(id))).toBe("not-wired");
+      },
+    );
+
+    it("accepts wiring that lives in package.json instead of a config file", async () => {
+      await writeFile(join(tempDir, "package.json"), JSON.stringify({ scripts: { test: "mocha --reporter allure-mocha" } }));
+      expect(await checkFrameworkWiring(tempDir, findFramework("mocha"))).toBe("wired");
+
+      await writeFile(join(tempDir, "package.json"), JSON.stringify({ jest: { testEnvironment: "allure-jest/node" } }));
+      expect(await checkFrameworkWiring(tempDir, findFramework("jest"))).toBe("wired");
+    });
+
+    it("doesn't take the adapter in dependencies for wiring", async () => {
+      await writeFile(join(tempDir, "package.json"), JSON.stringify({ devDependencies: { "allure-mocha": "^3.0.0" } }));
+
+      expect(await checkFrameworkWiring(tempDir, findFramework("mocha"))).toBe("not-wired");
+    });
+
+    it("never tells the user to type a name that doesn't exist", () => {
+      for (const framework of FRAMEWORK_REGISTRY) {
+        for (const { bad } of Object.values(OUTDATED_WIRING)) {
+          expect(framework.setupHint).not.toContain(bad);
+        }
+      }
     });
 
     it("reports unsupported for frameworks without a patcher", async () => {

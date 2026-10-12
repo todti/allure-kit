@@ -35,7 +35,7 @@ export const FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
     packageName: "jest",
     adapterPackage: "allure-jest",
     docsUrl: "https://allurereport.org/docs/jest-configuration/",
-    setupHint: 'Set testEnvironment to "allure-jest/environment" in jest.config.js',
+    setupHint: 'Set testEnvironment to "allure-jest/node" in jest.config.js',
     configFilePatterns: ["jest.config.ts", "jest.config.js", "jest.config.mjs", "jest.config.cjs", "jest.config.json"],
     // Same overlap problem — *.test.ts isn't Jest-specific.
     testFilePatterns: [],
@@ -46,7 +46,7 @@ export const FRAMEWORK_REGISTRY: FrameworkDescriptor[] = [
     packageName: "mocha",
     adapterPackage: "allure-mocha",
     docsUrl: "https://allurereport.org/docs/mocha-configuration/",
-    setupHint: 'Add "--reporter allure-mocha/reporter" to your mocha command or .mocharc file',
+    setupHint: 'Add "--reporter allure-mocha" to your mocha command or .mocharc file',
     configFilePatterns: [
       ".mocharc.yml",
       ".mocharc.yaml",

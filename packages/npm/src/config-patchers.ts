@@ -562,7 +562,27 @@ const patchJasmineFramework = async (
   return { status: "patched", configPath: helperPath };
 };
 
-export type FrameworkWiringStatus = "wired" | "not-wired" | "no-config-file" | "unsupported" | "outdated-name";
+export type FrameworkWiringStatus = "wired" | "not-wired" | "unsupported" | "outdated-name";
+
+// A framework without a config file can still be wired from the outside — `mocha --reporter allure-mocha` in a
+// package.json script, or a `jest`/`mocha`/`cucumber` key in package.json itself. Without that evidence nothing
+// registers the reporter and the run writes no results, so the answer is "not wired", not "can't tell".
+const checkWiringOutsideConfigFile = async (cwd: string, framework: FrameworkDescriptor): Promise<FrameworkWiringStatus> => {
+  const alreadyConfigured = ALREADY_CONFIGURED[framework.id];
+
+  try {
+    const manifest = JSON.parse(await readFile(resolve(cwd, "package.json"), "utf-8")) as Record<string, unknown>;
+    const evidence = JSON.stringify({ scripts: manifest.scripts, [framework.packageName]: manifest[framework.packageName] });
+
+    if (alreadyConfigured?.(evidence) || evidence.includes(framework.adapterPackage)) {
+      return "wired";
+    }
+  } catch {
+    // no readable package.json: nothing to find
+  }
+
+  return "not-wired";
+};
 
 // Read-only version of the "already configured?" check patchFrameworkConfig makes before
 // writing anything — for `doctor` to report on without touching any files.
@@ -571,7 +591,7 @@ export const checkFrameworkWiring = async (cwd: string, framework: FrameworkDesc
     const configPath = await findExistingFile(cwd, framework.configFilePatterns);
 
     if (!configPath) {
-      return "no-config-file";
+      return checkWiringOutsideConfigFile(cwd, framework);
     }
 
     const text = await readFile(configPath, "utf-8");
@@ -583,7 +603,7 @@ export const checkFrameworkWiring = async (cwd: string, framework: FrameworkDesc
     const configPath = await findExistingFile(cwd, framework.configFilePatterns);
 
     if (!configPath) {
-      return "no-config-file";
+      return checkWiringOutsideConfigFile(cwd, framework);
     }
 
     let json: Record<string, unknown>;
@@ -619,16 +639,12 @@ export const checkFrameworkWiring = async (cwd: string, framework: FrameworkDesc
   let configPath = await findExistingFile(cwd, framework.configFilePatterns);
 
   if (!configPath && framework.id === "vitest") {
-    // Vitest also reads its settings from vite.config.*; with neither file there is no reporter, hence nothing wired.
+    // Vitest also reads its settings from vite.config.*
     configPath = await findExistingFile(cwd, VITE_CONFIG_FILES);
-
-    if (!configPath) {
-      return "not-wired";
-    }
   }
 
   if (!configPath) {
-    return "no-config-file";
+    return checkWiringOutsideConfigFile(cwd, framework);
   }
 
   const text = await readFile(configPath, "utf-8");
