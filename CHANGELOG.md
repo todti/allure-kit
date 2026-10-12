@@ -4,6 +4,8 @@ All notable changes to `allure-kit`. The format follows [Keep a Changelog](https
 
 ## Unreleased
 
+## 1.1.3 — 2026-10-12
+
 Found by running the generated GitHub Actions workflow on a real repository.
 
 ### Fixed
