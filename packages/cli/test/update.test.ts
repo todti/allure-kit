@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -144,6 +144,18 @@ describe("kit/update", () => {
       expect(output()).not.toContain("allure-playwright@3.9.0 → 3.10.0 (dev) — MAJOR");
       expect(output()).toContain("allure@3.20.1 (dev) — up to date");
       expect(installCalls()).toEqual(["npm install --save-dev allure-vitest@latest allure-playwright@latest"]);
+    });
+
+    it("holds allure-vitest back on Vitest 2, where newer releases write no results", async () => {
+      await withPackages({ "allure-vitest": "3.4.2", allure: "^3.20.1" });
+      await mkdir(join(tempDir, "node_modules", "vitest"), { recursive: true });
+      await writeFile(join(tempDir, "node_modules", "vitest", "package.json"), JSON.stringify({ version: "2.1.9" }));
+      latestVersions = { "allure-vitest": "3.13.0", allure: "3.20.1" };
+
+      await run(true);
+
+      expect(output()).toContain("allure-vitest@3.4.2 (dev) — not updated: vitest 2.1.9 works only with allure-vitest 3.4.2 or older");
+      expect(installCalls()).toEqual([]);
     });
 
     it("reports that everything is up to date without installing anything", async () => {

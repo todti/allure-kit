@@ -95,6 +95,50 @@ describe("kit/config-patchers", () => {
     });
   });
 
+  describe("vitest without a config file", () => {
+    it("creates vitest.config.mjs wired to Allure", async () => {
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("vitest"));
+
+      expect(outcome).toMatchObject({ status: "patched", created: true, configPath: join(tempDir, "vitest.config.mjs") });
+
+      const text = await readFile(join(tempDir, "vitest.config.mjs"), "utf-8");
+
+      expect(text).toContain('reporters: ["default", "allure-vitest/reporter"]');
+      expect(text).toContain('setupFiles: ["allure-vitest/setup"]');
+      expect(await checkFrameworkWiring(tempDir, findFramework("vitest"))).toBe("wired");
+    });
+
+    it("creates a .ts config in a TypeScript project", async () => {
+      await writeFile(join(tempDir, "tsconfig.json"), "{}");
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("vitest"));
+
+      expect(outcome.configPath).toBe(join(tempDir, "vitest.config.ts"));
+    });
+
+    it("doesn't shadow a vite.config with a new vitest.config", async () => {
+      await writeFile(join(tempDir, "vite.config.ts"), "export default {};\n");
+
+      const outcome = await patchFrameworkConfig(tempDir, findFramework("vitest"));
+
+      expect(outcome.status).toBe("no-config-file");
+      expect(outcome.reason).toContain("vite.config.ts");
+      await expect(readFile(join(tempDir, "vitest.config.mjs"), "utf-8")).rejects.toThrow();
+      expect(await checkFrameworkWiring(tempDir, findFramework("vitest"))).toBe("not-wired");
+    });
+
+    it("recognises a vite.config that already has the reporter", async () => {
+      await writeFile(join(tempDir, "vite.config.ts"), 'export default { test: { reporters: ["allure-vitest/reporter"] } };\n');
+
+      expect((await patchFrameworkConfig(tempDir, findFramework("vitest"))).status).toBe("already-configured");
+      expect(await checkFrameworkWiring(tempDir, findFramework("vitest"))).toBe("wired");
+    });
+
+    it("reports not-wired when there is no config at all", async () => {
+      expect(await checkFrameworkWiring(tempDir, findFramework("vitest"))).toBe("not-wired");
+    });
+  });
+
   describe("vitest", () => {
     it("adds reporters and setupFiles to an existing test block", async () => {
       const configPath = join(tempDir, "vitest.config.ts");

@@ -61,11 +61,13 @@ export class KitUpdateCommand extends Command {
 
     print();
 
-    for (const { name, version, isDev, current, latest, status, majorBump } of plan) {
+    for (const { name, version, isDev, current, latest, status, majorBump, heldBack } of plan) {
       const scope = isDev ? "dev" : "prod";
 
       if (status === "current") {
         logInfo(`${name}@${current} (${scope}) — up to date`);
+      } else if (heldBack) {
+        logWarning(`${name}@${current} (${scope}) — not updated: ${heldBack}`);
       } else if (status === "outdated") {
         logInfo(`${name}@${current} → ${latest} (${scope})${majorBump ? " — MAJOR upgrade, check the changelog" : ""}`);
       } else {
@@ -75,7 +77,7 @@ export class KitUpdateCommand extends Command {
 
     logNewLine();
 
-    const toUpdate = plan.filter((pkg) => pkg.status !== "current");
+    const toUpdate = plan.filter((pkg) => pkg.status !== "current" && !pkg.heldBack);
 
     if (toUpdate.length === 0) {
       logSuccess("All Allure packages are up to date");

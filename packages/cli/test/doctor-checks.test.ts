@@ -68,9 +68,9 @@ describe("kit/doctor-checks", () => {
       expect(await checkAdapterCompat(dir)).toEqual([]);
     });
 
-    it("flags allure-vitest >= 3.13 on vitest < 3 (silently writes no results)", async () => {
+    it("flags allure-vitest >= 3.4.3 on vitest < 3 (silently writes no results)", async () => {
       await install("vitest", "2.1.9");
-      await install("allure-vitest", "3.13.0");
+      await install("allure-vitest", "3.4.3");
 
       const findings = await checkAdapterCompat(dir);
 
@@ -78,6 +78,10 @@ describe("kit/doctor-checks", () => {
       expect(findings[0].level).toBe("error");
       expect(findings[0].message).toContain("writes no allure-results");
 
+      await install("allure-vitest", "3.4.2");
+      expect(await checkAdapterCompat(dir)).toEqual([]);
+
+      await install("allure-vitest", "3.13.0");
       await install("vitest", "3.2.7");
       expect(await checkAdapterCompat(dir)).toEqual([]);
     });

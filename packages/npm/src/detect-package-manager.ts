@@ -93,10 +93,13 @@ export const getInstallCommand = (
   packageManager: PackageManager,
   packages: string[],
   isDev: boolean = true,
+  exact: boolean = false,
 ): string => {
   const packageList = packages.join(" ");
 
-  const devFlag = isDev ? { bun: " -d", yarn: " -D", pnpm: " -D", npm: " --save-dev" }[packageManager] : "";
+  const devFlag =
+    (isDev ? { bun: " -d", yarn: " -D", pnpm: " -D", npm: " --save-dev" }[packageManager] : "") +
+    (exact ? { bun: " --exact", yarn: " --exact", pnpm: " --save-exact", npm: " --save-exact" }[packageManager] : "");
 
   switch (packageManager) {
     case "bun":

@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -5,6 +6,7 @@ import {
   buildAllureConfig,
   type ConfigFormat,
   diffLines,
+  type DetectedFramework,
   type EcosystemAdapter,
   executeCommand,
   findExistingConfig,
@@ -21,10 +23,11 @@ import {
   serializeConfig,
   writeAllureConfig,
 } from "@todti/allure-kit-core";
-import { detectWorkspaceFrameworks } from "@todti/allure-kit-npm";
+import { checkFrameworkWiring, detectWorkspaceFrameworks } from "@todti/allure-kit-npm";
 import { Command, Option, UsageError } from "clipanion";
 import prompts from "prompts";
 
+import { compareVersions, FRAMEWORK_TOO_OLD_RULES, readInstalledVersion } from "../doctor-checks.js";
 import { ECOSYSTEMS, resolveEcosystem } from "../ecosystems.js";
 
 
@@ -42,6 +45,102 @@ const findFrameworkByIdOrPackage = (value: string, registry: FrameworkDescriptor
 
     return framework.detectPackageNames?.some((name) => name.toLowerCase() === lowered) ?? false;
   });
+};
+
+/**
+ * The newest adapter doesn't always work with an old framework (allure-vitest >= 3.5 writes nothing on Vitest 2), so
+ * install the newest one that does — `doctor` reports the same combination as an error.
+ */
+const pinAdaptersForOldFrameworks = async (
+  workingDir: string,
+  adapters: string[],
+  detected: DetectedFramework[],
+): Promise<{ pinned: string[]; free: string[] }> => {
+  const pinned: string[] = [];
+  const free: string[] = [];
+
+  for (const adapter of adapters) {
+    const rule = FRAMEWORK_TOO_OLD_RULES.find(({ adapterPackage }) => adapterPackage === adapter);
+    const declared = detected.find(({ framework }) => framework.packageName === rule?.frameworkPackage)?.version;
+    const frameworkVersion = rule ? ((await readInstalledVersion(workingDir, rule.frameworkPackage)) ?? declared) : undefined;
+    const comparison = rule && frameworkVersion ? compareVersions(frameworkVersion, rule.frameworkBelow) : null;
+
+    if (rule && comparison !== null && comparison < 0) {
+      logInfo(`${rule.frameworkPackage} ${frameworkVersion} needs ${adapter} ${rule.adapterPin}: newer releases write no results with it`);
+      pinned.push(`${adapter}@${rule.adapterPin}`);
+    } else {
+      free.push(adapter);
+    }
+  }
+
+  return { pinned, free };
+};
+
+/** Detected frameworks whose adapter isn't plugged into the framework's own config (npm ecosystem only). */
+const findUnwiredFrameworks = async (
+  ecosystem: EcosystemAdapter,
+  workingDir: string,
+  detected: DetectedFramework[],
+): Promise<FrameworkDescriptor[]> => {
+  if (ecosystem.id !== "npm") {
+    return [];
+  }
+
+  const unwired: FrameworkDescriptor[] = [];
+
+  for (const { framework } of detected) {
+    if ((await checkFrameworkWiring(workingDir, framework)) === "not-wired") {
+      unwired.push(framework);
+    }
+  }
+
+  return unwired;
+};
+
+const wireFramework = async (
+  ecosystem: EcosystemAdapter,
+  framework: FrameworkDescriptor,
+  workingDir: string,
+  dryRun: boolean,
+) => {
+  const plannedWrites: { path: string; content: string }[] = [];
+  const outcome = await ecosystem.patchFrameworkConfig?.(
+    workingDir,
+    framework,
+    dryRun ? async (path, content) => void plannedWrites.push({ path, content }) : undefined,
+  );
+
+  for (const { path, content } of plannedWrites) {
+    const before = await readFile(path, "utf-8").catch(() => "");
+
+    logInfo(`would ${before === "" ? "create" : "modify"} ${path}:`);
+    print(diffLines(before, content));
+  }
+
+  if (!outcome) {
+    logHint(`${framework.displayName}: ${framework.setupHint}`);
+    return;
+  }
+
+  if (outcome.status === "patched" && dryRun) {
+    return;
+  }
+
+  if (outcome.status === "patched") {
+    logSuccess(`${outcome.created ? "created" : "wired"} ${framework.adapterPackage} ${outcome.created ? "in" : "into"} ${outcome.configPath}`);
+
+    if (outcome.note) {
+      logWarning(outcome.note);
+    }
+  } else if (outcome.status === "already-configured") {
+    logInfo(`${framework.displayName} config already has the Allure reporter`);
+  } else {
+    if (outcome.reason) {
+      logWarning(`${framework.displayName}: config left untouched — ${outcome.reason}`);
+    }
+
+    logHint(`${framework.displayName}: ${framework.setupHint}`);
+  }
 };
 
 const cwdDefault = (): string => process.cwd();
@@ -166,18 +265,31 @@ export class KitInitCommand extends Command {
 
     const existingConfig = await findExistingConfig(workingDir);
 
+    const detectedFrameworks = await ecosystem.detectFrameworks(workingDir);
+
     if (existingConfig && !ecosystem.setupViaBuildFile) {
-      logSuccess(`Allure is already configured (${existingConfig.path}).`);
-      logInfo('Run "allure-kit doctor" to verify or "allure-kit update" to upgrade.');
+      const unwired = await findUnwiredFrameworks(ecosystem, workingDir, detectedFrameworks);
+
+      if (unwired.length === 0 || forcedFramework) {
+        logSuccess(`Allure is already configured (${existingConfig.path}).`);
+        logInfo('Run "allure-kit doctor" to verify or "allure-kit update" to upgrade.');
+        return;
+      }
+
+      // An allurerc alone doesn't make a framework write results: finish the part that was left out last time.
+      logInfo(`${existingConfig.path} exists, but ${unwired.map(({ displayName }) => displayName).join(", ")} isn't wired to Allure yet.`);
+
+      for (const framework of unwired) {
+        await wireFramework(ecosystem, framework, workingDir, dryRun);
+      }
+
       return;
     }
-
-    const detectedFrameworks = await ecosystem.detectFrameworks(workingDir);
 
     if (detectedFrameworks.length > 0) {
       for (const { framework, version } of detectedFrameworks) {
         const versionStr = version !== "unknown" ? ` ${version}` : "";
-        const configPath = framework.configFilePatterns[0] ?? "";
+        const configPath = framework.configFilePatterns.find((pattern) => existsSync(resolve(workingDir, pattern))) ?? "";
 
         logInfo(`${framework.id}${versionStr}${configPath ? ` ${configPath}` : ""}`);
       }
@@ -284,22 +396,35 @@ export class KitInitCommand extends Command {
       .map((id) => registry.find((f) => f.id === id))
       .filter(Boolean)
       .map((f) => f!.adapterPackage);
+    const { pinned: pinnedAdapters, free: freeAdapters } = await pinAdaptersForOldFrameworks(
+      workingDir,
+      selectedAdapters,
+      detectedFrameworks,
+    );
 
     const packageManager = await ecosystem.detectPackageManager(workingDir);
-    const packagesToInstall = [...ecosystem.alwaysInstallPackages, ...selectedAdapters];
+    const packagesToInstall = [...ecosystem.alwaysInstallPackages, ...freeAdapters];
+    // Pinned adapters go in a command of their own so that only they are recorded without a `^`.
+    const installCommands = [
+      ...(packagesToInstall.length > 0 ? [ecosystem.getInstallCommand(packageManager, packagesToInstall, true)] : []),
+      ...(pinnedAdapters.length > 0 ? [ecosystem.getInstallCommand(packageManager, pinnedAdapters, true, true)] : []),
+    ];
 
     if (ecosystem.setupViaBuildFile) {
       // Dependencies come from the build file edit below; there is no install command to run.
-    } else if (packagesToInstall.length > 0 && dryRun) {
-      logInfo(`would run: ${ecosystem.getInstallCommand(packageManager, packagesToInstall, true)}`);
-    } else if (packagesToInstall.length > 0) {
-      const installCommand = ecosystem.getInstallCommand(packageManager, packagesToInstall, true);
-      const result = await executeCommand(installCommand, workingDir);
+    } else if (installCommands.length > 0 && dryRun) {
+      for (const command of installCommands) {
+        logInfo(`would run: ${command}`);
+      }
+    } else if (installCommands.length > 0) {
+      for (const installCommand of installCommands) {
+        const result = await executeCommand(installCommand, workingDir);
 
-      if (result.exitCode !== 0) {
-        logError("Package installation failed:");
-        print(result.stderr);
-        return;
+        if (result.exitCode !== 0) {
+          logError("Package installation failed:");
+          print(result.stderr);
+          return;
+        }
       }
 
       await ecosystem.afterInstall?.(workingDir, packageManager, selectedAdapters);
@@ -326,44 +451,7 @@ export class KitInitCommand extends Command {
         docsLinks.push(`${framework.displayName}: ${framework.docsUrl}`);
       }
 
-      const plannedWrites: { path: string; content: string }[] = [];
-      const outcome = await ecosystem.patchFrameworkConfig?.(
-        workingDir,
-        framework,
-        dryRun ? async (path, content) => void plannedWrites.push({ path, content }) : undefined,
-      );
-
-      for (const { path, content } of plannedWrites) {
-        const before = await readFile(path, "utf-8").catch(() => "");
-
-        logInfo(`would ${before === "" ? "create" : "modify"} ${path}:`);
-        print(diffLines(before, content));
-      }
-
-      if (!outcome) {
-        logHint(`${framework.displayName}: ${framework.setupHint}`);
-        continue;
-      }
-
-      if (outcome.status === "patched" && dryRun) {
-        continue;
-      }
-
-      if (outcome.status === "patched") {
-        logSuccess(`wired ${framework.adapterPackage} into ${outcome.configPath}`);
-
-        if (outcome.note) {
-          logWarning(outcome.note);
-        }
-      } else if (outcome.status === "already-configured") {
-        logInfo(`${framework.displayName} config already has the Allure reporter`);
-      } else {
-        if (outcome.reason) {
-          logWarning(`${framework.displayName}: config left untouched — ${outcome.reason}`);
-        }
-
-        logHint(`${framework.displayName}: ${framework.setupHint}`);
-      }
+      await wireFramework(ecosystem, framework, workingDir, dryRun);
     }
 
     if (docsLinks.length > 0 && !dryRun) {

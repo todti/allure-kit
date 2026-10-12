@@ -4,6 +4,14 @@ All notable changes to `allure-kit`. The format follows [Keep a Changelog](https
 
 ## Unreleased
 
+Found by running the generated GitHub Actions workflow on a real repository.
+
+### Fixed
+- **Vitest without a config file** (the common case: Vitest needs none): `init` printed a hint but wired nothing, so the first CI run produced no results, and `doctor` only warned that it "can't verify". `init` now creates `vitest.config.ts` (`.mjs` without a `tsconfig.json`) with the reporter, and `doctor` reports the missing wiring as an error. In a Vite project (`vite.config.*` and no `vitest.config.*`) `init` leaves the files alone and says why, because a new `vitest.config.*` would replace the Vite config.
+- **`init` after a first run that wired nothing** said "Allure is already configured" and stopped. When `allurerc` exists but a detected framework isn't wired, `init` now wires it (it never overwrites `allurerc`).
+- **Vitest 1/2 with a current `allure-vitest`:** `allure-vitest` 3.4.3 and newer write no results on Vitest below 3 and report no error. `init` now installs `allure-vitest@3.4.2` (exact) there, `update` leaves it alone, and the `doctor` rule that flagged this starts at 3.4.3 instead of 3.13.0 (3.4.3 – 3.12 were silently broken too).
+- `init` named a config file (`vitest.config.ts`) in its detection line even when the project had none.
+
 ## 1.1.2 — 2026-10-08
 
 No changes to the CLI itself. The introduction and feature list of the README (the front page of the package on npmjs.com) now describe the current tool: Java, `demo`, `migrate`, the CI providers and `--json`.

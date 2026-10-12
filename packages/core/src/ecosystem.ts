@@ -32,6 +32,8 @@ export interface ConfigPatchOutcome {
   status: "patched" | "already-configured" | "no-config-file" | "unsupported" | "unrecognized-shape";
   configPath?: string;
   note?: string;
+  /** Set with `patched` when the framework had no config file and one was created. */
+  created?: boolean;
   /** Why the config was left untouched (set with `unrecognized-shape`), shown above the manual `setupHint`. */
   reason?: string;
 }
@@ -53,7 +55,8 @@ export interface EcosystemAdapter<PackageManager extends string = string> {
   manifestFiles: string[];
   detectPackageManager(cwd: string): Promise<PackageManager>;
   detectFrameworks(cwd: string): Promise<DetectedFramework[]>;
-  getInstallCommand(packageManager: PackageManager, packages: string[], isDev: boolean): string;
+  /** `exact` records the version as written in the manifest instead of a `^` range (for packages pinned on purpose). */
+  getInstallCommand(packageManager: PackageManager, packages: string[], isDev: boolean, exact?: boolean): string;
   getRemoveCommand(packageManager: PackageManager, packages: string[]): string;
   /** Packages always installed regardless of selected frameworks (e.g. the "allure" CLI itself for the npm ecosystem). */
   alwaysInstallPackages: string[];
