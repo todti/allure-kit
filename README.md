@@ -87,7 +87,7 @@ Every configuring command takes `--yes` (no prompts) and `--json` (one JSON docu
 
 ## allure-kit vs doing it by hand
 
-Setting Allure up manually is a handful of small steps, each with a way to go wrong *silently* — the tests run, the report is empty. These are the traps found by running the setup on real projects (the repository's end-to-end suite does exactly that, nightly):
+Setting Allure up manually is a handful of small steps, each with a way to go wrong *silently* — the tests run, the report is empty. These are the traps found by running the setup on real projects (the repository's end-to-end suite does exactly that):
 
 | By hand | What goes wrong | allure-kit |
 |---|---|---|

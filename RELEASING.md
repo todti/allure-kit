@@ -8,7 +8,7 @@ Only `allure-kit` (`packages/cli`) is published; `@todti/allure-kit-*` are priva
 
 ## Publishing
 
-1. Make sure `master` is green (CI and the nightly [e2e](.github/workflows/e2e.yml)).
+1. Make sure `master` is green (CI), and run the [e2e](.github/workflows/e2e.yml) workflow by hand.
 2. In one commit: set the new `version` in `packages/cli/package.json` and turn the *Unreleased* heading of `CHANGELOG.md` into `## <version> — <date>` (add a fresh *Unreleased* above it).
 3. Tag and push: `git tag v<version> && git push origin master v<version>`.
 
